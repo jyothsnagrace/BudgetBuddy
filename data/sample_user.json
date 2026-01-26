@@ -1,0 +1,17 @@
+{
+  "user_id": "user_123",
+  "name": "John Doe",
+  "incomes": [
+    { "source": "Job A", "amount": 4500 },
+    { "source": "Side gig", "amount": 500 }
+  ],
+  "expenses": [
+    { "name": "Rent", "amount": 1500, "category": "housing" },
+    { "name": "Utilities", "amount": 200, "category": "housing" },
+    { "name": "Groceries", "amount": 400, "category": "food" },
+    { "name": "Subscriptions", "amount": 50, "category": "entertainment" }
+  ],
+  "savings_goal": 12000,
+  "debt_payoff_plan": "Pay minimums on all cards, focus extra payments on highest interest",
+  "notes": "User wants to save for a car in 12 months."
+}
