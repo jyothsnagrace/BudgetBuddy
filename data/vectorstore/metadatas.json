@@ -124,5 +124,12 @@
     "total_income": 4500.0,
     "total_expenses": 1500.0,
     "savings_goal": 12000.0
+  },
+  {
+    "user_id": "john_doe",
+    "text": "User: john_doe\nTotal income: 7000.0\nTotal expenses: 2000.0\nSavings goal: 12000.0\nIncomes:\n- Salary: 4500.0\n- Salary2: 2500.0\nExpenses:\n- Rent (Housing): 1500.0\n- Food (Food): 500.0",
+    "total_income": 7000.0,
+    "total_expenses": 2000.0,
+    "savings_goal": 12000.0
   }
 ]

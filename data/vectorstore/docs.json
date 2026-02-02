@@ -16,5 +16,6 @@
   "User: john_doe\nTotal income: 4500.0\nTotal expenses: 1500.0\nSavings goal: 12000.0\nIncomes:\n- Salary: 4500.0\nExpenses:\n- Rent (Housing): 1500.0",
   "User: john_doe\nTotal income: 7000.0\nTotal expenses: 2800.0\nSavings goal: 12000.0\nIncomes:\n- Salary: 4500.0\n- Job2: 2500.0\nExpenses:\n- Rent (Housing): 1500.0\n- Food (Food): 500.0\n- Car (Transportation): 800.0",
   "User: john_doe\nTotal income: 4500.0\nTotal expenses: 1500.0\nSavings goal: 12500.0\nIncomes:\n- Salary: 4500.0\nExpenses:\n- Rent (Housing): 1500.0",
-  "User: john_doe\nTotal income: 4500.0\nTotal expenses: 1500.0\nSavings goal: 12000.0\nIncomes:\n- Salary: 4500.0\nExpenses:\n- Rent (Housing): 1500.0"
+  "User: john_doe\nTotal income: 4500.0\nTotal expenses: 1500.0\nSavings goal: 12000.0\nIncomes:\n- Salary: 4500.0\nExpenses:\n- Rent (Housing): 1500.0",
+  "User: john_doe\nTotal income: 7000.0\nTotal expenses: 2000.0\nSavings goal: 12000.0\nIncomes:\n- Salary: 4500.0\n- Salary2: 2500.0\nExpenses:\n- Rent (Housing): 1500.0\n- Food (Food): 500.0"
 ]
