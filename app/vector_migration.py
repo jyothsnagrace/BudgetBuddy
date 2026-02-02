@@ -16,7 +16,6 @@ This is a best-effort small utility for classroom/demo use.
 """
 from typing import List
 import os
-import json
 
 try:
     import pinecone
@@ -91,4 +90,3 @@ def migrate_all_to_pinecone(db_path: str = 'data/db.sqlite'):
             idx.upsert(vectors=to_upsert)
 
     print('Migration complete')
-*** End Patch

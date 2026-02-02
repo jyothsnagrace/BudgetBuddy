@@ -1,10 +1,8 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from app.schemas import UserFinanceInput, PlanRequest, CreativeRequest
 from app.vectorstore import SimpleVectorStore
 from app import llm
 from app import db as appdb
-from typing import Dict, List
 import os
 
 
