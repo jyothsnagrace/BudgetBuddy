@@ -6,7 +6,7 @@ def page_config():
     #st.set_option('deprecation.showPyplotGlobalUse', False)
     st.set_page_config(page_title=APP_TITLE, page_icon=":heavy_dollar_sign", layout="wide")
     st.title(f":calendar: {APP_TITLE} :heavy_dollar_sign:")
-    st.caption(APP_SUB_TITLE)
+    st.markdown(f'<p style="text-align: right; color: gray; font-size: 14px;">{APP_SUB_TITLE}</p>', unsafe_allow_html=True)
     st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
 
