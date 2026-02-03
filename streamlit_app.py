@@ -127,9 +127,11 @@ def submit_data(user_id, user_name, incomes, expenses, savings_goal):
 
 with st.sidebar:
     page = option_menu(
-        menu_title="📍 Navigation",
-        options=["📊 Home", "📈 Data Analysis", "💡 Summary Dashboard"],
+        menu_title="Navigation",
+        options=["Home", "Data Analysis", "Summary Dashboard"],
         default_index=0,
+        icons=["house", "bar-chart", "lightbulb"],
+        menu_icon="compass",
     )
     
     st.markdown("---")
@@ -161,7 +163,7 @@ with st.sidebar:
 # PAGE 1: HOME - User Input and Financial Tracking
 # ============================================================================
 
-if page == "📊 Home":
+if page == "Home":
     st.markdown("### 💼 Personal Finance Dashboard")
     st.markdown("Add your income and expenses, then track them in a table.")
     
@@ -336,7 +338,7 @@ if page == "📊 Home":
 # PAGE 2: DATA ANALYSIS - Charts and Budget Plan
 # ============================================================================
 
-elif page == "📈 Data Analysis":
+elif page == "Data Analysis":
     st.markdown("### 📈 Expense Analysis & Financial Projections")
     
     # Display selected agent
@@ -466,7 +468,7 @@ elif page == "📈 Data Analysis":
 # PAGE 3: SUMMARY - Creative Summary, Action Plan, and Tips
 # ============================================================================
 
-elif page == "💡 Summary Dashboard":
+elif page == "Summary Dashboard":
     st.markdown("### 📊 Financial Insights & Planning")
     
     # Display selected agent
