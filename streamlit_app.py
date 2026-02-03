@@ -317,7 +317,7 @@ if page == "📊 Home":
         
         # Summary & Submission
         st.markdown("---")
-        st.subheader("💰 Financial Summary")
+        st.subheader("� Financial Summary")
         
         total_income, total_expenses, remaining = calculate_totals()
         display_metric_row(
