@@ -29,7 +29,6 @@ SYSTEM_PROMPT = _load_system_prompt()
 def _call_openai_chat(messages: List[dict], model: str = OPENAI_MODEL, temperature: float = 0.4):
     if openai is None or OPENAI_API_KEY is None:
         raise RuntimeError("OpenAI library or API key not available")
-    # Basic chat call
     resp = openai.ChatCompletion.create(
         model=model,
         messages=messages,
@@ -52,7 +51,6 @@ def _call_openai_chat_with_functions(messages: List[dict], functions: List[dict]
     )
     choice = resp["choices"][0]
     message = choice["message"]
-    # If assistant called a function, return function call data
     if message.get("function_call"):
         return {
             "role": message.get("role"),
@@ -108,23 +106,18 @@ def generate_budget_from_context(context: str, months: int = 6) -> str:
     # Attempt function-calling route first
     try:
         resp = _call_openai_chat_with_functions(messages, functions)
-        # If function call present, parse the arguments
         if resp.get("function_call"):
             args_text = resp["function_call"].get("arguments")
-            # arguments may be a JSON string
             try:
                 import json as _json
                 parsed = _json.loads(args_text)
                 return _json.dumps(parsed, indent=2)
             except Exception:
-                # if parsing fails, return raw arguments
                 return args_text
         # otherwise return the content
         if resp.get("content"):
             return resp.get("content")
     except Exception:
-        # Fallback: simple heuristic structured plan
-        # Try to extract totals from context
         total_income = None
         total_expenses = None
         savings_goal = None

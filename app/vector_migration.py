@@ -78,7 +78,6 @@ def migrate_all_to_pinecone(db_path: str = 'data/db.sqlite'):
         texts = [d['text'] for d in docs]
         ids = [f"{user}_{d['id']}" for d in docs]
         metadatas = [d['metadata'] if 'metadata' in d and d['metadata'] else { 'user_id': d['user_id'], 'id': d['id']} for d in docs]
-        print(f'Migrating {len(texts)} docs for user {user} -> index {index_name}')
         # compute embeddings in batches
         batch_size = 16
         for i in range(0, len(texts), batch_size):
@@ -88,5 +87,3 @@ def migrate_all_to_pinecone(db_path: str = 'data/db.sqlite'):
             embs = _get_embeddings_texts(batch_texts)
             to_upsert = [(batch_ids[j], embs[j], batch_meta[j]) for j in range(len(batch_ids))]
             idx.upsert(vectors=to_upsert)
-
-    print('Migration complete')

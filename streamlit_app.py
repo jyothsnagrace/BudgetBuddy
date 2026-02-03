@@ -187,7 +187,7 @@ if page == "📊 Home":
     with income_col2:
         income_amount = st.number_input("Amount ($)", value=4500.0, min_value=0.0, step=100.0)
     with income_btn:
-        st.write("")  # Align button
+        st.write("")
         if st.button("➕ Add", key="add_income"):
             if "incomes" not in st.session_state:
                 st.session_state.incomes = []
@@ -245,7 +245,7 @@ if page == "📊 Home":
     with exp_col3:
         expense_category = st.selectbox("Category", ["Housing", "Food", "Transportation", "Entertainment", "Utilities", "Other"])
     with exp_btn:
-        st.write("")  # Align button
+        st.write("")
         if st.button("➕", key="add_expense", help="Add"):
             if "expenses" not in st.session_state:
                 st.session_state.expenses = []

@@ -19,33 +19,55 @@ A comprehensive, AI-powered personal finance management application that helps y
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 🌐 Deploy to Streamlit Cloud (Recommended)
 
-```bash
-pip install streamlit streamlit-option-menu pandas altair requests python-dotenv
-```
+1. **Push to GitHub:**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/YOUR_USERNAME/BB_Project.git
+   git push -u origin main
+   ```
 
-### Setup
+2. **Deploy:**
+   - Visit [share.streamlit.io](https://share.streamlit.io)
+   - Click "New app"
+   - Select your repository
+   - Main file: `streamlit_app.py`
+   - Click "Deploy"
 
-1. Clone the repository:
-```bash
-git clone https://github.com/YourUsername/BudgetBuddy.git
-cd BudgetBuddy
-```
+   ✅ Your app will be live in minutes!
 
-2. Create `.streamlit/secrets.toml`:
-```toml
-api_base = "http://127.0.0.1:8000"
-```
+📖 **Detailed deployment guide:** See [DEPLOYMENT.md](DEPLOYMENT.md)
 
-3. Ensure your backend API is running on port 8000
+### 💻 Local Development
 
-4. Run the Streamlit app:
-```bash
-streamlit run streamlit_app.py
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/BB_Project.git
+   cd BB_Project
+   ```
 
-The app will open at `http://localhost:8501` (or next available port)
+2. **Install dependencies:**
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1  # Windows PowerShell
+   # or: source .venv/bin/activate  # Mac/Linux
+   pip install -r requirements.txt
+   ```
+
+3. **Run the app:**
+   ```bash
+   streamlit run streamlit_app.py
+   ```
+
+   The app will open at `http://localhost:8501`
+
+4. **Optional - Run backend API:**
+   ```bash
+   python -m uvicorn app.main:app --reload --port 8000
+   ```
 
 ## 💬 Usage Guide
 

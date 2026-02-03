@@ -26,7 +26,6 @@ def init_db(db_path: str = "data/db.sqlite"):
     conn = sqlite3.connect(db_path)
     conn.execute(CREATE_TABLE_SQL)
     conn.commit()
-    # add created_at column if missing (safe for existing DBs)
     cur = conn.cursor()
     cur.execute("PRAGMA table_info(docs)")
     cols = [r[1] for r in cur.fetchall()]
@@ -35,7 +34,6 @@ def init_db(db_path: str = "data/db.sqlite"):
             cur.execute("ALTER TABLE docs ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP")
             conn.commit()
         except Exception:
-            # Some older SQLite variants may not support ALTER in this context; ignore
             pass
     conn.close()
 
