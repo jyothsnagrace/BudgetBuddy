@@ -166,7 +166,7 @@ if page == "📊 Home":
     st.markdown("Add your income and expenses, then track them in a table.")
     
     # User Information Section
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 1])
     
     with col1:
         st.subheader("👤 User Information")
@@ -191,7 +191,7 @@ if page == "📊 Home":
             help="Your target savings amount"
         )
     
-    st.markdown("---")
+    st.write("")  # Small spacing
     
     # Income Section
     st.subheader("💵 Income Sources")
@@ -247,7 +247,7 @@ if page == "📊 Home":
                         st.session_state[f"edit_income_{idx}"] = False
                         st.rerun()
     
-    st.markdown("---")
+    st.write("")  # Small spacing
     
     # Expense Section
     st.subheader("💸 Expenses")
@@ -326,7 +326,7 @@ if page == "📊 Home":
             "Remaining", f"${remaining:,.2f}"
         )
         
-        st.markdown("---")
+        st.write("")  # Small spacing
         st.subheader("📤 Submit Your Data")
         st.info("Review your information above, then click the button to submit your financial data.")
         
