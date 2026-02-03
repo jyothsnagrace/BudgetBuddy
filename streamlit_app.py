@@ -337,7 +337,7 @@ if page == "📊 Home":
 # ============================================================================
 
 elif page == "📈 Data Analysis":
-    st.title("📈 Expense Analysis & Financial Projections")
+    st.markdown("### 📈 Expense Analysis & Financial Projections")
     
     # Display selected agent
     selected_agent = st.session_state.get("selected_agent", "GPT-4")
@@ -467,7 +467,7 @@ elif page == "📈 Data Analysis":
 # ============================================================================
 
 elif page == "💡 Summary Dashboard":
-    st.title("📊 Financial Insights & Planning")
+    st.markdown("### 📊 Financial Insights & Planning")
     
     # Display selected agent
     selected_agent = st.session_state.get("selected_agent", "GPT-4")
