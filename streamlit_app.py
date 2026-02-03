@@ -133,6 +133,21 @@ with st.sidebar:
     )
     
     st.markdown("---")
+    
+    # Agent Selection
+    st.markdown("### 🤖 AI Agent Selection")
+    agent_options = ["GPT-4", "Claude", "Gemini", "Llama", "Mistral", "Cohere"]
+    selected_agent = st.selectbox(
+        "Select AI Agent for Analysis",
+        options=agent_options,
+        index=0,
+        help="Choose an AI agent to generate Page 2 & 3 content"
+    )
+    # Store in session state for use in other pages
+    st.session_state.selected_agent = selected_agent
+    st.info(f"🤖 Active Agent: **{selected_agent}**")
+    
+    st.markdown("---")
     st.markdown("### 💡 About BudgetBuddy")
     st.info("""
     **BudgetBuddy** helps you:
@@ -324,6 +339,10 @@ if page == "📊 Home":
 elif page == "📈 Data Analysis":
     st.title("📈 Expense Analysis & Financial Projections")
     
+    # Display selected agent
+    selected_agent = st.session_state.get("selected_agent", "GPT-4")
+    st.info(f"🤖 Powered by: **{selected_agent}**")
+    
     col1, col2 = st.columns([2, 1])
     with col1:
         user_id = st.text_input(
@@ -450,6 +469,10 @@ elif page == "📈 Data Analysis":
 elif page == "💡 Summary Dashboard":
     st.title("📊 Financial Insights & Planning")
     
+    # Display selected agent
+    selected_agent = st.session_state.get("selected_agent", "GPT-4")
+    st.info(f"🤖 Powered by: **{selected_agent}**")
+    
     # User Inputs
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -494,6 +517,121 @@ elif page == "💡 Summary Dashboard":
             if not user_id or not name:
                 st.error("❌ Please enter your name and user ID.")
             else:
+                selected_agent = st.session_state.get("selected_agent", "GPT-4")
+                
+                # Define agent-specific summaries
+                if selected_agent == "GPT-4":
+                    default_summary = f"""
+                    ### ✨ Your Financial Journey (GPT-4 Analysis)
+                    
+                    Dear **{name}**,
+                    
+                    Your financial awareness demonstrates discipline and forward-thinking. 
+                    With **${monthly_savings:,.2f}** saved monthly, you're building a strong foundation.
+                    
+                    **Key Insights:**
+                    - Monthly surplus represents {(monthly_savings/total_income*100):.1f}% of your income
+                    - Annual projection: ${monthly_savings * 12:,.2f} toward financial freedom
+                    - Expense efficiency: {(total_expenses/total_income*100):.1f}% spending rate
+                    
+                    **Recommendation:** Continue your consistent tracking and consider increasing savings by 5% quarterly.
+                    
+                    Keep tracking, stay focused, and celebrate your progress! 🚀
+                    """
+                elif selected_agent == "Claude":
+                    default_summary = f"""
+                    ### 🌟 Your Financial Narrative (Claude Perspective)
+                    
+                    Hello **{name}**,
+                    
+                    Your journey toward financial wellness reflects thoughtful planning and conscious choices. 
+                    Saving **${monthly_savings:,.2f}** each month isn't just about numbers—it's about building security and peace of mind.
+                    
+                    **Reflections:**
+                    - You're actively choosing future stability over immediate gratification
+                    - Your ${monthly_savings * 12:,.2f} annual savings opens doors to opportunities
+                    - This disciplined approach creates a buffer against life's uncertainties
+                    
+                    **Mindful Approach:** Focus on sustainable habits rather than aggressive targets. Financial wellness is a marathon, not a sprint.
+                    
+                    You're building more than wealth—you're creating freedom. Keep nurturing these positive habits! 🌱
+                    """
+                elif selected_agent == "Llama":
+                    default_summary = f"""
+                    ### 🦙 Community-Driven Financial Wisdom (Llama Insights)
+                    
+                    Hey **{name}**,
+                    
+                    Your financial journey is uniquely yours, and you're making smart moves! 
+                    With **${monthly_savings:,.2f}** saved monthly, you're part of a growing community prioritizing financial independence.
+                    
+                    **Community Benchmarks:**
+                    - Your savings rate ({(monthly_savings/total_income*100):.1f}%) is {"above" if monthly_savings/total_income > 0.15 else "building toward"} the community average (15-20%)
+                    - Annual growth potential: ${monthly_savings * 12:,.2f}
+                    - Peer comparison: You're on track with successful savers in your cohort
+                    
+                    **Community Tips:** Join local financial literacy groups and share your progress. Learning together accelerates everyone's journey!
+                    
+                    You're building wealth the open-source way—transparent, collaborative, and effective! 🌐💪
+                    """
+                elif selected_agent == "Mistral":
+                    default_summary = f"""
+                    ### 🎯 Precision Financial Strategy (Mistral Analysis)
+                    
+                    Bonjour **{name}**,
+                    
+                    Your financial discipline reflects European-style prudence and strategic planning.
+                    Current monthly allocation of **${monthly_savings:,.2f}** demonstrates measured, sustainable progress.
+                    
+                    **Strategic Assessment:**
+                    - Income optimization: ${total_income:,.2f}/month base
+                    - Expenditure control: ${total_expenses:,.2f}/month ({(total_expenses/total_income*100):.1f}% utilization)
+                    - Capital preservation: ${monthly_savings:,.2f}/month ({(monthly_savings/total_income*100):.1f}% retention rate)
+                    - 12-month trajectory: ${monthly_savings * 12:,.2f} accumulated capital
+                    
+                    **Recommendation:** Balanced approach with 60% safety, 30% growth, 10% opportunity reserves.
+                    
+                    Your methodical strategy ensures stability while capturing upside potential! 🎯🔒
+                    """
+                elif selected_agent == "Cohere":
+                    default_summary = f"""
+                    ### 🤝 Collaborative Financial Intelligence (Cohere Perspective)
+                    
+                    Hello **{name}**,
+                    
+                    Your financial patterns show thoughtful coordination between earning, spending, and saving.
+                    Monthly savings of **${monthly_savings:,.2f}** indicates a balanced approach to wealth building.
+                    
+                    **Coherent Analysis:**
+                    - Income streams working together: ${total_income:,.2f}/month
+                    - Coordinated expenses: ${total_expenses:,.2f}/month
+                    - Unified savings goal: ${savings_goal:,.2f} target
+                    - Timeline synergy: {(savings_goal/monthly_savings if monthly_savings > 0 else 0):.1f} months to achievement
+                    
+                    **Integration Strategy:** Align all financial accounts toward unified goals. Use automated systems that communicate with each other for maximum efficiency.
+                    
+                    Your connected approach creates powerful synergies across all financial dimensions! 🔗✨
+                    """
+                else:  # Gemini
+                    default_summary = f"""
+                    ### 🚀 Financial Analytics Report (Gemini Intelligence)
+                    
+                    Greetings **{name}**,
+                    
+                    Your financial data reveals promising patterns and optimization opportunities.
+                    Current monthly savings of **${monthly_savings:,.2f}** positions you for strategic growth.
+                    
+                    **Data Points:**
+                    - Savings Rate: {(monthly_savings/total_income*100):.1f}% (Target: 20%+)
+                    - Burn Rate: ${total_expenses:,.2f}/month ({(total_expenses/total_income*100):.1f}%)
+                    - 12-Month Projection: ${monthly_savings * 12:,.2f} liquid assets
+                    - Goal Achievement Timeline: {(savings_goal/monthly_savings):.1f} months
+                    
+                    **Optimization Strategy:** Leverage compound growth through index funds while maintaining emergency liquidity.
+                    
+                    Your data-driven approach sets you up for exponential growth! 📊⚡
+                    """
+                
                 with st.spinner("✨ Generating your creative summary..."):
                     req = {
                         "user_id": user_id,
@@ -509,127 +647,376 @@ elif page == "💡 Summary Dashboard":
                             result = r.json()
                             creative_text = result.get("creative_summary", "")
                             if creative_text:
-                                st.markdown("### ✨ Your Financial Journey")
+                                st.markdown(f"### ✨ Your Financial Journey ({selected_agent})")
                                 st.write(creative_text)
                             else:
                                 st.warning("No summary generated. Showing default...")
-                                st.success(f"""
-                                ### ✨ Your Financial Journey
-                                
-                                Dear **{name}**,
-                                
-                                Your financial awareness demonstrates discipline and forward-thinking. 
-                                With **${monthly_savings:,.2f}** saved monthly, you're building a strong foundation.
-                                
-                                **Annual Projection:** ${monthly_savings * 12:,.2f} will bring you closer to financial freedom.
-                                
-                                Keep tracking, stay focused, and celebrate your progress! 🚀
-                                """)
+                                st.success(default_summary)
                         else:
                             st.warning(f"⚠️ LLM service returned error. Showing default summary...")
-                            st.success(f"""
-                            ### ✨ Your Financial Journey
-                            
-                            Dear **{name}**,
-                            
-                            Your financial awareness demonstrates discipline and forward-thinking. 
-                            With **${monthly_savings:,.2f}** saved monthly, you're building a strong foundation.
-                            
-                            **Annual Projection:** ${monthly_savings * 12:,.2f} will bring you closer to financial freedom.
-                            
-                            Keep tracking, stay focused, and celebrate your progress! 🚀
-                            """)
+                            st.success(default_summary)
                     except requests.exceptions.Timeout:
                         st.error("❌ **Timeout**: Creative summary generation took too long. Showing default summary...")
-                        st.success(f"""
-                        ### ✨ Your Financial Journey
-                        
-                        Dear **{name}**,
-                        
-                        You're on a solid financial path with **${monthly_savings:,.2f}** saved monthly.
-                        Keep up the excellent work toward your goals! 💪
-                        """)
+                        st.success(default_summary)
                     except requests.exceptions.ConnectionError:
                         st.error(f"❌ **Connection Error**: Could not reach LLM service at {API_BASE}. Showing default summary...")
-                        st.success(f"""
-                        ### ✨ Your Financial Journey
-                        
-                        Dear **{name}**,
-                        
-                        You're on a solid financial path with **${monthly_savings:,.2f}** saved monthly.
-                        Keep up the excellent work toward your goals! 💪
-                        """)
+                        st.success(default_summary)
                     except Exception as e:
                         st.error(f"❌ **Error**: {str(e)}")
-                        st.success(f"""
-                        ### ✨ Your Financial Journey
-                        
-                        Dear **{name}**,
-                        
-                        You're on a solid financial path with **${monthly_savings:,.2f}** saved monthly.
-                        Keep up the excellent work toward your goals! 💪
-                        """)
+                        st.success(default_summary)
     
     with tab2:
-        st.header("12-Month Action Plan")
+        selected_agent = st.session_state.get("selected_agent", "GPT-4")
+        st.header(f"12-Month Action Plan ({selected_agent})")
         
-        with st.expander("🏗️ Phase 1: Foundation (Months 1-3)", expanded=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Goals:**")
-                st.write(f"• Emergency fund: ${total_income * 0.5:,.2f}")
-                st.write("• Weekly expense tracking")
-                st.write("• Identify top 3 categories")
-            with col2:
-                st.markdown("**Actions:**")
-                st.write("1. Open high-yield savings")
-                st.write("2. Automate tracking")
-                st.write("3. Reduce subscriptions by 10%")
-            st.info(f"**Target Savings:** ${monthly_savings * 3:,.2f}")
+        if selected_agent == "GPT-4":
+            # Traditional structured approach
+            with st.expander("🏗️ Phase 1: Foundation (Months 1-3)", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Goals:**")
+                    st.write(f"• Emergency fund: ${total_income * 0.5:,.2f}")
+                    st.write("• Weekly expense tracking")
+                    st.write("• Identify top 3 spending categories")
+                with col2:
+                    st.markdown("**Actions:**")
+                    st.write("1. Open high-yield savings account")
+                    st.write("2. Automate expense tracking")
+                    st.write("3. Reduce subscriptions by 10%")
+                st.info(f"**Target Savings:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("⚡ Phase 2: Acceleration (Months 4-6)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Goals:**")
+                    st.write("• Build 3-month emergency fund")
+                    st.write("• Reduce expenses by 15%")
+                    st.write("• Full savings automation")
+                with col2:
+                    st.markdown("**Actions:**")
+                    st.write(f"1. Increase savings to ${monthly_savings * 1.2:,.2f}")
+                    st.write("2. Renegotiate recurring bills")
+                    st.write("3. Implement 50/30/20 rule")
+                st.info(f"**Target Savings:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("🚀 Phase 3: Investment (Months 7-12)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Goals:**")
+                    st.write("• Complete 6-month emergency fund")
+                    st.write("• Begin investing 10% of income")
+                    st.write("• Achieve primary savings goal")
+                with col2:
+                    st.markdown("**Actions:**")
+                    st.write(f"1. Open investment account")
+                    st.write(f"2. Invest ${total_income * 0.10:,.2f}/month")
+                    st.write("3. Plan next financial milestone")
+                st.info(f"**Target Savings:** ${monthly_savings * 6:,.2f}")
         
-        with st.expander("⚡ Phase 2: Acceleration (Months 4-6)"):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Goals:**")
-                st.write("• 3-month emergency fund")
-                st.write("• Reduce expenses by 15%")
-                st.write("• Full savings automation")
-            with col2:
-                st.markdown("**Actions:**")
-                st.write(f"1. Increase savings to ${monthly_savings * 0.8:,.2f}")
-                st.write("2. Renegotiate bills")
-                st.write("3. Implement 50/30/20 rule")
-            st.info(f"**Target Savings:** ${monthly_savings * 3:,.2f}")
+        elif selected_agent == "Claude":
+            # Mindful, habit-focused approach
+            with st.expander("🌱 Stage 1: Building Awareness (Months 1-3)", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Mindful Goals:**")
+                    st.write(f"• Create comfort cushion: ${total_income * 0.5:,.2f}")
+                    st.write("• Daily spending reflection")
+                    st.write("• Understand spending triggers")
+                with col2:
+                    st.markdown("**Gentle Actions:**")
+                    st.write("1. Start gratitude spending journal")
+                    st.write("2. Practice 24-hour purchase rule")
+                    st.write("3. Cook one extra meal at home weekly")
+                st.info(f"**Sustainable Target:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("💪 Stage 2: Strengthening Habits (Months 4-6)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Growth Goals:**")
+                    st.write("• Expand safety net to 3 months")
+                    st.write("• Cultivate mindful spending habits")
+                    st.write("• Build sustainable routines")
+                with col2:
+                    st.markdown("**Empowering Actions:**")
+                    st.write(f"1. Redirect ${monthly_savings * 0.5:,.2f} from wants to needs")
+                    st.write("2. Start side income exploration")
+                    st.write("3. Join financial wellness community")
+                st.info(f"**Realistic Target:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("🎯 Stage 3: Thriving & Growing (Months 7-12)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Abundance Goals:**")
+                    st.write("• Reach 6-month security buffer")
+                    st.write("• Create passive income stream")
+                    st.write("• Share financial wisdom with others")
+                with col2:
+                    st.markdown("**Purposeful Actions:**")
+                    st.write(f"1. Explore values-based investing")
+                    st.write(f"2. Allocate ${total_income * 0.10:,.2f} to growth assets")
+                    st.write("3. Plan meaningful reward experiences")
+                st.info(f"**Holistic Target:** ${monthly_savings * 6:,.2f}")
         
-        with st.expander("🚀 Phase 3: Investment (Months 7-12)"):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Goals:**")
-                st.write("• 6-month emergency fund")
-                st.write("• Invest 10% of income")
-                st.write("• Achieve savings goal")
-            with col2:
-                st.markdown("**Actions:**")
-                st.write(f"1. Open investment account")
-                st.write(f"2. Invest ${total_income * 0.10:,.2f}/month")
-                st.write("3. Plan next milestone")
-            st.info(f"**Target Savings:** ${monthly_savings * 6:,.2f}")
+        elif selected_agent == "Llama":
+            # Community-focused, open approach
+            with st.expander("🌍 Community Phase 1: Learn Together (Months 1-3)", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Community Goals:**")
+                    st.write(f"• Build starter fund: ${total_income * 0.5:,.2f}")
+                    st.write("• Join financial communities")
+                    st.write("• Share and learn from peers")
+                with col2:
+                    st.markdown("**Collaborative Actions:**")
+                    st.write("1. Find local finance meetups")
+                    st.write("2. Use open-source budgeting tools")
+                    st.write("3. Start accountability partnerships")
+                st.info(f"**Collective Target:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("🤝 Community Phase 2: Grow Together (Months 4-6)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Shared Goals:**")
+                    st.write("• Reach 3-month safety net")
+                    st.write("• Exchange money-saving tips")
+                    st.write("• Build support network")
+                with col2:
+                    st.markdown("**Group Actions:**")
+                    st.write(f"1. Participate in savings challenges")
+                    st.write("2. Share bulk-buying opportunities")
+                    st.write("3. Co-learn investment basics")
+                st.info(f"**Together We Save:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("💫 Community Phase 3: Thrive Together (Months 7-12)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Collective Goals:**")
+                    st.write("• Complete 6-month emergency fund")
+                    st.write("• Start community investing club")
+                    st.write("• Mentor new community members")
+                with col2:
+                    st.markdown("**Collaborative Actions:**")
+                    st.write(f"1. Pool knowledge on investment options")
+                    st.write(f"2. Invest ${total_income * 0.10:,.2f} using group wisdom")
+                    st.write("3. Celebrate milestones together")
+                st.info(f"**Community Wealth:** ${monthly_savings * 6:,.2f}")
+        
+        elif selected_agent == "Mistral":
+            # European-style, balanced approach
+            with st.expander("🏛️ Trimester 1: Établissement (Months 1-3)", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Prudent Objectives:**")
+                    st.write(f"• Security reserve: ${total_income * 0.5:,.2f}")
+                    st.write("• Systematic expense review")
+                    st.write("• Risk assessment & mitigation")
+                with col2:
+                    st.markdown("**Measured Actions:**")
+                    st.write("1. Establish conservative budget")
+                    st.write("2. Diversify income sources")
+                    st.write("3. Implement gradual optimizations")
+                st.info(f"**Capital Preservation:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("⚖️ Trimester 2: Équilibre (Months 4-6)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Balanced Targets:**")
+                    st.write("• Expand reserves to 3 months")
+                    st.write("• Maintain work-life equilibrium")
+                    st.write("• Sustainable 15% reduction")
+                with col2:
+                    st.markdown("**Strategic Actions:**")
+                    st.write(f"1. Balance growth: ${monthly_savings * 1.15:,.2f}/month")
+                    st.write("2. European-style bill optimization")
+                    st.write("3. Moderate risk diversification")
+                st.info(f"**Balanced Growth:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("📈 Trimester 3: Croissance (Months 7-12)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Growth Objectives:**")
+                    st.write("• Achieve 6-month stability cushion")
+                    st.write("• Prudent market participation")
+                    st.write("• Long-term wealth building")
+                with col2:
+                    st.markdown("**Execution Plan:**")
+                    st.write(f"1. Conservative portfolio: ${total_income * 0.10:,.2f}/month")
+                    st.write("2. 70% bonds, 30% equities allocation")
+                    st.write("3. Quarterly strategic review")
+                st.info(f"**Accumulated Capital:** ${monthly_savings * 6:,.2f}")
+        
+        elif selected_agent == "Cohere":
+            # Integration-focused, connected approach
+            with st.expander("🔗 Integration 1: Connect Systems (Months 1-3)", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Integration Goals:**")
+                    st.write(f"• Unified emergency fund: ${total_income * 0.5:,.2f}")
+                    st.write("• Link all financial accounts")
+                    st.write("• Create coherent tracking system")
+                with col2:
+                    st.markdown("**Connected Actions:**")
+                    st.write("1. Centralize financial dashboard")
+                    st.write("2. Sync bank feeds automatically")
+                    st.write("3. Integrate payment methods")
+                st.info(f"**Synchronized Savings:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("🔄 Integration 2: Harmonize Flow (Months 4-6)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Harmony Targets:**")
+                    st.write("• Coordinated 3-month buffer")
+                    st.write("• Unified expense reduction (15%)")
+                    st.write("• Aligned automation workflows")
+                with col2:
+                    st.markdown("**Flow Actions:**")
+                    st.write(f"1. Orchestrate ${monthly_savings * 1.2:,.2f} savings flow")
+                    st.write("2. Integrate bill payment systems")
+                    st.write("3. Connect budgets to goals")
+                st.info(f"**Harmonized Growth:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("🌐 Integration 3: Scale Network (Months 7-12)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Network Objectives:**")
+                    st.write("• Integrated 6-month safety net")
+                    st.write("• Connected investment accounts")
+                    st.write("• Cohesive wealth ecosystem")
+                with col2:
+                    st.markdown("**Scaling Actions:**")
+                    st.write(f"1. Link brokerage to budget system")
+                    st.write(f"2. Automate ${total_income * 0.10:,.2f} investment transfers")
+                    st.write("3. Create unified financial API")
+                st.info(f"**Network Effect:** ${monthly_savings * 6:,.2f}")
+        
+        else:  # Gemini
+            # Data-driven, optimized approach
+            with st.expander("🔧 Sprint 1: System Setup (Months 1-3)", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Optimization Targets:**")
+                    st.write(f"• Bootstrap emergency buffer: ${total_income * 0.5:,.2f}")
+                    st.write("• Implement real-time dashboards")
+                    st.write("• Deploy AI-powered tracking tools")
+                with col2:
+                    st.markdown("**Technical Actions:**")
+                    st.write("1. Set up automated budget app")
+                    st.write("2. Connect all accounts to aggregator")
+                    st.write("3. Configure spending alerts & limits")
+                st.info(f"**Initial Accumulation:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("📊 Sprint 2: Data Optimization (Months 4-6)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Performance KPIs:**")
+                    st.write("• Scale emergency fund to 3x monthly burn")
+                    st.write("• Achieve 15% expense reduction")
+                    st.write("• Maximize tax-advantaged accounts")
+                with col2:
+                    st.markdown("**Strategic Actions:**")
+                    st.write(f"1. Optimize savings rate to ${monthly_savings * 1.3:,.2f}")
+                    st.write("2. Automate bill negotiation services")
+                    st.write("3. Leverage cashback & rewards programs")
+                st.info(f"**Growth Metric:** ${monthly_savings * 3:,.2f}")
+            
+            with st.expander("🚀 Sprint 3: Wealth Acceleration (Months 7-12)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Scale Objectives:**")
+                    st.write("• Reach 6-month runway")
+                    st.write("• Deploy 10%+ into diversified portfolio")
+                    st.write("• Activate compound growth engine")
+                with col2:
+                    st.markdown("**Execution Plan:**")
+                    st.write(f"1. Initialize robo-advisor with ${total_income * 0.10:,.2f}/month")
+                    st.write(f"2. Optimize asset allocation (80/20 stocks/bonds)")
+                    st.write("3. Set up quarterly rebalancing automation")
+                st.info(f"**Exponential Target:** ${monthly_savings * 6:,.2f}")
     
     with tab3:
         st.header("💡 Essential Financial Tips")
         
-        tips = [
-            ("🎯 The 50/30/20 Rule", "Allocate 50% to needs, 30% to wants, 20% to savings/debt"),
-            ("💰 Emergency Fund", "Build 3-6 months of expenses before aggressive investing"),
-            ("📊 Track Everything", "Monitor spending to identify patterns and opportunities"),
-            ("🏦 Automate Savings", "Auto-transfer on payday removes temptation"),
-            ("💳 Debt First", "Eliminate high-interest debt before investing"),
-            ("📈 Invest Early", "Compound interest is powerful; start ASAP"),
-            ("🛍️ Avoid Lifestyle Creep", "Keep spending stable as income grows"),
-            ("🎓 Financial Education", "Continuously learn about investing & taxes"),
-            ("💬 Get Professional Help", "Consider a financial advisor for major decisions"),
-            ("🔄 Review Annually", "Reassess goals and strategies yearly"),
-        ]
+        # Get agent-specific tips
+        selected_agent = st.session_state.get("selected_agent", "GPT-4")
+        
+        if selected_agent == "GPT-4":
+            tips = [
+                ("🎯 The 50/30/20 Rule", "Allocate 50% to needs, 30% to wants, 20% to savings/debt"),
+                ("💰 Emergency Fund", "Build 3-6 months of expenses before aggressive investing"),
+                ("📊 Track Everything", "Monitor spending to identify patterns and opportunities"),
+                ("🏦 Automate Savings", "Auto-transfer on payday removes temptation"),
+                ("💳 Debt First", "Eliminate high-interest debt before investing"),
+                ("📈 Invest Early", "Compound interest is powerful; start ASAP"),
+                ("🛍️ Avoid Lifestyle Creep", "Keep spending stable as income grows"),
+                ("🎓 Financial Education", "Continuously learn about investing & taxes"),
+                ("💬 Get Professional Help", "Consider a financial advisor for major decisions"),
+                ("🔄 Review Annually", "Reassess goals and strategies yearly"),
+            ]
+        elif selected_agent == "Claude":
+            tips = [
+                ("🧠 Mindful Spending", "Practice conscious decision-making before each purchase"),
+                ("🎯 SMART Goals", "Set Specific, Measurable, Achievable, Relevant, Time-bound financial goals"),
+                ("💎 Quality Over Quantity", "Invest in durable goods that last rather than cheap replacements"),
+                ("🌱 Side Income Streams", "Explore freelancing or passive income opportunities"),
+                ("📚 Financial Literacy", "Read personal finance books and follow trusted experts"),
+                ("🔍 Hidden Subscriptions", "Audit recurring charges quarterly to eliminate unused services"),
+                ("🏡 Home Economics", "Cook at home and meal prep to reduce food expenses"),
+                ("⚡ Energy Efficiency", "Reduce utility bills through smart consumption habits"),
+                ("🎁 Experience Over Things", "Value memories and relationships over material possessions"),
+                ("🧘 Financial Wellness", "Reduce money stress through organized planning and realistic expectations"),
+            ]
+        elif selected_agent == "Llama":
+            tips = [
+                ("🌍 Community Wealth Building", "Join savings groups and investment clubs for collective growth"),
+                ("🔓 Open-Source Tools", "Use free budgeting apps and open financial platforms"),
+                ("🤝 Accountability Partners", "Find financial buddies to share goals and progress"),
+                ("📚 Free Education", "Leverage free online courses and YouTube financial educators"),
+                ("💪 Peer Motivation", "Share successes and challenges with supportive communities"),
+                ("🎯 Crowdsourced Wisdom", "Learn from collective experiences on forums like Reddit"),
+                ("🌐 Global Perspective", "Explore international saving strategies and cultural approaches"),
+                ("🔄 Open Sharing", "Transparently discuss money matters to normalize financial literacy"),
+                ("🚀 Collective Action", "Participate in group challenges and savings competitions"),
+                ("💡 Distributed Learning", "Teach what you know and learn from everyone around you"),
+            ]
+        elif selected_agent == "Mistral":
+            tips = [
+                ("⚖️ Work-Life Balance", "Don't sacrifice well-being for excessive savings"),
+                ("🏛️ Prudent Investing", "Favor stable, long-term investments over speculation"),
+                ("🎯 Conservative Targets", "Set achievable goals rather than overly ambitious ones"),
+                ("🛡️ Risk Management", "Always maintain adequate insurance and safety reserves"),
+                ("🌍 European Strategy", "Learn from European savings culture: steady and sustainable"),
+                ("📊 Measured Growth", "Prefer consistent 5-7% returns over volatile high risks"),
+                ("🏦 Bank Relationships", "Build long-term relationships with trusted financial institutions"),
+                ("🎓 Strategic Education", "Invest in skills that provide stable income growth"),
+                ("💎 Quality Lifestyle", "Spend wisely on quality experiences that enrich life"),
+                ("🔒 Capital Preservation", "Protect principal before seeking aggressive growth"),
+            ]
+        elif selected_agent == "Cohere":
+            tips = [
+                ("🔗 Unified Dashboard", "Integrate all accounts into one coherent view"),
+                ("🔄 System Integration", "Connect banking, investing, and budgeting platforms"),
+                ("🤝 Goal Alignment", "Ensure all financial actions support unified objectives"),
+                ("📱 API Connections", "Use services that talk to each other automatically"),
+                ("🌐 Holistic Approach", "View finances as interconnected ecosystem, not silos"),
+                ("⚡ Automated Workflows", "Create rules that trigger actions across accounts"),
+                ("🎯 Coherent Strategy", "Align short-term actions with long-term vision"),
+                ("💻 Tech Stack", "Build complementary tools that enhance each other"),
+                ("🔍 Unified Reporting", "Generate comprehensive reports across all accounts"),
+                ("🧩 Puzzle Pieces", "Ensure each financial decision fits into the bigger picture"),
+            ]
+        else:  # Gemini
+            tips = [
+                ("🚀 Future-Forward Planning", "Think long-term with retirement and estate planning"),
+                ("🔐 Financial Security", "Protect assets with proper insurance coverage"),
+                ("💼 Career Investment", "Upskill regularly to increase earning potential"),
+                ("🌍 Diversification Strategy", "Spread investments across multiple asset classes"),
+                ("📱 Digital Tools", "Leverage budgeting apps and robo-advisors for optimization"),
+                ("🎓 Tax Optimization", "Maximize tax-advantaged accounts like 401k and IRA"),
+                ("🏦 Credit Score Mastery", "Monitor and improve credit for better financial opportunities"),
+                ("🤝 Financial Community", "Join forums or groups for shared learning and accountability"),
+                ("📊 Data-Driven Decisions", "Use analytics to understand spending patterns and trends"),
+                ("🎯 Milestone Rewards", "Celebrate financial achievements to maintain motivation"),
+            ]
         
         col1, col2 = st.columns(2)
         for idx, (tip_title, tip_text) in enumerate(tips):
