@@ -337,27 +337,6 @@ if page == "📊 Home":
 # ============================================================================
 
 elif page == "📈 Data Analysis":
-    # Custom CSS for smaller fonts on this page
-    st.markdown("""
-    <style>
-        .main .block-container {
-            font-size: 12px;
-        }
-        .main h1 {
-            font-size: 2.3rem;
-        }
-        .main h2 {
-            font-size: 1.8rem;
-        }
-        .main h3 {
-            font-size: 1.4rem;
-        }
-        .main p, .main div, .main label {
-            font-size: 12px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
     st.title("📈 Expense Analysis & Financial Projections")
     
     # Display selected agent
@@ -488,27 +467,6 @@ elif page == "📈 Data Analysis":
 # ============================================================================
 
 elif page == "💡 Summary Dashboard":
-    # Custom CSS for smaller fonts on this page
-    st.markdown("""
-    <style>
-        .main .block-container {
-            font-size: 12px;
-        }
-        .main h1 {
-            font-size: 2.3rem;
-        }
-        .main h2 {
-            font-size: 1.8rem;
-        }
-        .main h3 {
-            font-size: 1.4rem;
-        }
-        .main p, .main div, .main label {
-            font-size: 12px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
     st.title("📊 Financial Insights & Planning")
     
     # Display selected agent
