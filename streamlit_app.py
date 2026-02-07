@@ -393,7 +393,7 @@ elif page == "Data Analysis":
             strat_col1, strat_col2 = st.columns(2)
             
             with strat_col1:
-                with st.container(border=True):
+                with st.container():
                     st.markdown("### 📈 Aggressive Strategy")
                     target_aggressive = total_income * 0.25
                     months_aggressive = savings_goal / target_aggressive if target_aggressive > 0 else float('inf')
@@ -402,7 +402,7 @@ elif page == "Data Analysis":
                     st.write("**Focus:** Cut entertainment & utilities, minimize subscriptions")
             
             with strat_col2:
-                with st.container(border=True):
+                with st.container():
                     st.markdown("### 🎯 Balanced Strategy")
                     target_balanced = total_income * 0.15
                     months_balanced = savings_goal / target_balanced if target_balanced > 0 else float('inf')
@@ -458,7 +458,7 @@ elif page == "Data Analysis":
                     potential_savings = row['amount'] * 0.15
                     new_target = row['amount'] - potential_savings
                     
-                    with st.container(border=True):
+                    with st.container():
                         col1, col2, col3 = st.columns(3)
                         col1.metric(f"{row['category']}", f"${row['amount']:,.2f}")
                         col2.metric("Target", f"${new_target:,.2f}")
