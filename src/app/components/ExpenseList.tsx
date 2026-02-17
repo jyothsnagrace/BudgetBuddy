@@ -9,6 +9,7 @@ interface Expense {
   category: string;
   description: string;
   date: string;
+  created_at: string;
 }
 
 interface ExpenseListProps {
@@ -18,7 +19,7 @@ interface ExpenseListProps {
 
 export function ExpenseList({ expenses, onDeleteExpense }: ExpenseListProps) {
   const sortedExpenses = [...expenses].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
   return (

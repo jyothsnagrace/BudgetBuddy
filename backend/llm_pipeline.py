@@ -14,7 +14,8 @@ from jsonschema import validate, ValidationError
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 # JSON Schema for expense validation
 EXPENSE_SCHEMA = {
@@ -58,9 +59,11 @@ class LLMPipeline:
     """Two-stage LLM pipeline for expense processing"""
     
     def __init__(self):
-        self.extraction_model = genai.GenerativeModel('gemini-1.5-flash')
-        self.normalization_model = genai.GenerativeModel('gemini-1.5-flash')
-        self.chat_model = genai.GenerativeModel('gemini-1.5-flash')
+        print(f"[LLMPipeline] Initializing with gemini-2.5-flash")
+        self.extraction_model = genai.GenerativeModel('gemini-2.5-flash')
+        print(f"[LLMPipeline] Extraction model: {self.extraction_model._model_name}")
+        self.normalization_model = genai.GenerativeModel('gemini-2.5-flash')
+        self.chat_model = genai.GenerativeModel('gemini-2.5-flash')
         
     def health_check(self) -> bool:
         """Check if LLM service is available"""
@@ -68,7 +71,8 @@ class LLMPipeline:
             # Simple test generation
             response = self.extraction_model.generate_content("Say 'OK'")
             return bool(response.text)
-        except Exception:
+        except Exception as e:
+            print(f"[LLM Health Check] Failed: {e}")
             return False
     
     async def parse_expense(self, natural_text: str) -> Dict[str, Any]:

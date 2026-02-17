@@ -8,10 +8,6 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, date, timedelta
 from supabase import create_client, Client
 
-# Supabase Configuration
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-
 
 class DatabaseClient:
     """Supabase database client"""
@@ -22,18 +18,29 @@ class DatabaseClient:
     
     async def connect(self):
         """Initialize Supabase client"""
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            print("WARNING: Supabase credentials not configured")
-            print("    Using mock mode for development")
+        # Read environment variables at connection time (after load_dotenv)
+        supabase_url = os.getenv("SUPABASE_URL", "")
+        supabase_key = os.getenv("SUPABASE_KEY", "")
+        
+        print(f"[DB] Attempting Supabase connection...")
+        print(f"[DB] SUPABASE_URL: {supabase_url[:20]}..." if supabase_url else "[DB] SUPABASE_URL: X missing")
+        print(f"[DB] SUPABASE_KEY: {'OK' if supabase_key else 'X missing'}")
+        
+        if not supabase_url or not supabase_key:
+            print("[DB] WARNING: Supabase credentials not configured")
+            print("[DB] Using mock mode for development")
             self._connected = False
             return
         
         try:
-            self.client = create_client(SUPABASE_URL, SUPABASE_KEY)
+            print("[DB] Creating Supabase client...")
+            self.client = create_client(supabase_url, supabase_key)
             self._connected = True
-            print(">> Connected to Supabase")
+            print("[DB] OK Connected to Supabase successfully")
         except Exception as e:
-            print(f"ERROR: Supabase connection failed: {e}")
+            print(f"[DB] ERROR: Supabase connection failed: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             self._connected = False
     
     async def disconnect(self):
@@ -107,6 +114,22 @@ class DatabaseClient:
         except Exception as e:
             print(f"Error updating friendship: {e}")
     
+    async def update_user_pet(self, user_id: str, pet: str):
+        """Update user's selected pet"""
+        if not self._connected:
+            return
+        
+        valid_pets = ['penguin', 'dragon', 'capybara', 'cat']
+        if pet not in valid_pets:
+            raise ValueError(f"Invalid pet. Must be one of {valid_pets}")
+        
+        try:
+            self.client.table('users').update({
+                'selected_pet': pet
+            }).eq('id', user_id).execute()
+        except Exception as e:
+            raise Exception(f"Error updating pet: {e}")
+    
     # ============================================
     # EXPENSE OPERATIONS
     # ============================================
@@ -160,7 +183,7 @@ class DatabaseClient:
             if category:
                 query = query.eq('category', category)
             
-            query = query.order('expense_date', desc=True).limit(limit)
+            query = query.order('created_at', desc=True).limit(limit)
             
             response = query.execute()
             return response.data

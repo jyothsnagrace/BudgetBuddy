@@ -23,6 +23,7 @@ interface Expense {
   category: string;
   description: string;
   date: string;
+  created_at: string;
 }
 
 // Category mapping helpers
@@ -55,13 +56,9 @@ const backendToFrontendCategory = (backendCat: string): string => {
 };
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem("token");
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  const [username, setUsername] = useState(() => {
-    return localStorage.getItem("username") || "";
-  });
+  const [username, setUsername] = useState("");
 
   const [budget, setBudget] = useState(() => {
     const saved = localStorage.getItem("budget");
@@ -75,6 +72,17 @@ export default function App() {
     const saved = localStorage.getItem('selectedPet');
     return (saved as 'penguin' | 'dragon' | 'capybara' | 'cat') || 'penguin';
   });
+
+  // Check for existing session on mount (page reload)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUsername = localStorage.getItem("username");
+    
+    if (token && storedUsername) {
+      setIsAuthenticated(true);
+      setUsername(storedUsername);
+    }
+  }, []); // Run once on mount
 
   // Fetch expenses from backend on mount if authenticated
   useEffect(() => {
@@ -99,13 +107,18 @@ export default function App() {
       if (response.ok) {
         const data = await response.json();
         // Map backend expense_date and category to frontend format
-        const mappedExpenses = (data.expenses || []).map((expense: any) => ({
-          id: expense.id,
-          amount: expense.amount,
-          category: backendToFrontendCategory(expense.category),
-          description: expense.description,
-          date: expense.expense_date,
-        }));
+        const mappedExpenses = (data.expenses || []).map((expense: any) => {
+          const frontendCategory = backendToFrontendCategory(expense.category);
+          console.log(`Mapping category: "${expense.category}" -> "${frontendCategory}"`);
+          return {
+            id: expense.id,
+            amount: expense.amount,
+            category: frontendCategory,
+            description: expense.description,
+            date: expense.expense_date,
+            created_at: expense.created_at,
+          };
+        });
         setExpenses(mappedExpenses);
       }
     } catch (error) {
@@ -155,6 +168,7 @@ export default function App() {
     try {
       // Convert frontend emoji category to backend category
       const backendCategory = frontendToBackendCategory(expenseData.category);
+      console.log(`Adding expense: frontend category "${expenseData.category}" -> backend "${backendCategory}"`);
       
       // Format date to YYYY-MM-DD for PostgreSQL
       const dateObj = new Date(expenseData.date);
@@ -176,13 +190,17 @@ export default function App() {
 
       if (response.ok) {
         const backendExpense = await response.json();
+        console.log(`Backend returned: category "${backendExpense.category}"`);
+        const frontendCategory = backendToFrontendCategory(backendExpense.category);
+        console.log(`Mapped to frontend: "${frontendCategory}"`);
         // Map backend expense_date and category to frontend format
         const newExpense: Expense = {
           id: backendExpense.id,
           amount: backendExpense.amount,
-          category: expenseData.category, // Keep original frontend category with emoji
+          category: frontendCategory, // Map backend category to frontend
           description: backendExpense.description,
           date: backendExpense.expense_date,
+          created_at: backendExpense.created_at,
         };
         setExpenses((prev) => [...prev, newExpense]);
       } else {
@@ -223,6 +241,27 @@ export default function App() {
   const handleLogin = async (username: string, token: string, userId: string) => {
     setUsername(username);
     setIsAuthenticated(true);
+    
+    // Fetch user profile to get selected_pet
+    try {
+      const response = await fetch(`${API_URL}/api/user/profile`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const profile = await response.json();
+        if (profile.selected_pet) {
+          setSelectedPet(profile.selected_pet as 'penguin' | 'dragon' | 'capybara' | 'cat');
+          localStorage.setItem('selectedPet', profile.selected_pet);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      // Continue with default pet if profile fetch fails
+    }
+    
     // Expenses will be fetched by the useEffect that watches isAuthenticated
   };
 
@@ -230,8 +269,10 @@ export default function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     localStorage.removeItem("userId");
+    localStorage.removeItem("selectedPet");
     setIsAuthenticated(false);
     setUsername("");
+    setSelectedPet('penguin'); // Reset to default
   };
 
   // Show login if not authenticated

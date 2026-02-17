@@ -14,14 +14,15 @@ import io
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 
 class ReceiptParser:
     """Parse receipt images using Gemini Vision"""
     
     def __init__(self):
-        self.vision_model = genai.GenerativeModel('gemini-1.5-flash')
+        self.vision_model = genai.GenerativeModel('gemini-2.5-flash')
     
     async def parse_receipt(self, image_data: bytes) -> Dict[str, Any]:
         """
@@ -34,14 +35,84 @@ class ReceiptParser:
             Parsed expense data
         """
         try:
-            # Load image
-            image = Image.open(io.BytesIO(image_data))
+            # Convert image bytes to base64
+            import base64
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
             
-            # Stage 1: Extract text from image
-            extracted_text = await self._extract_text(image)
+            # Determine image format from the first few bytes
+            mime_type = 'image/jpeg'
+            if image_data.startswith(b'\x89PNG'):
+                mime_type = 'image/png'
+            elif image_data.startswith(b'GIF'):
+                mime_type = 'image/gif'
+            elif image_data.startswith(b'RIFF') and image_data[8:12] == b'WEBP':
+                mime_type = 'image/webp'
             
-            # Stage 2: Parse structured data
-            parsed_data = await self._parse_structure(extracted_text)
+            # Single-stage: Extract and parse in one go
+            parsed_data = await self._parse_receipt_direct(image_base64, mime_type)
+            
+            return parsed_data
+            
+        except Exception as e:
+            raise ValueError(f"Receipt parsing failed: {str(e)}")
+    
+    async def _parse_receipt_direct(self, image_base64: str, mime_type: str) -> Dict[str, Any]:
+        """Parse receipt image directly using Gemini vision"""
+        
+        prompt = f"""Analyze this receipt image and extract structured expense data.
+
+Extract and return ONLY a JSON object with these exact fields:
+- amount: The TOTAL amount paid (number only, no $ symbol or commas)
+- category: Best matching category from [Food, Transportation, Entertainment, Shopping, Bills, Healthcare, Education, Other]
+- description: Brief description (merchant name + key items, max 100 chars)
+- date: Date in YYYY-MM-DD format (use today if not visible: {date.today().isoformat()})
+- merchant: Store/restaurant name
+- items: Brief list of main items purchased
+
+Category mapping:
+- Restaurant, grocery, cafe, food → "Food"
+- Gas station, uber, lyft, taxi, parking → "Transportation"
+- Movie, concert, games → "Entertainment"
+- Retail, clothing, electronics, amazon → "Shopping"
+- Utilities, phone, internet → "Bills"
+- Pharmacy, doctor, hospital → "Healthcare"
+- School, books, courses → "Education"
+- Everything else → "Other"
+
+Return ONLY valid JSON like this:
+{{
+  "amount": 13.32,
+  "category": "Food",
+  "description": "The Breakfast Club - Chicken waffle meal",
+  "date": "2020-03-04",
+  "merchant": "The Breakfast Club",
+  "items": "Chicken waffle meal, drinks"
+}}
+
+Be accurate with the total amount. Return ONLY the JSON object, no explanations."""
+
+        try:
+            # Use Gemini with inline image data
+            response = self.vision_model.generate_content(
+                [
+                    {
+                        "mime_type": mime_type,
+                        "data": image_base64
+                    },
+                    prompt
+                ],
+                generation_config={
+                    'temperature': 0.1,
+                    'max_output_tokens': 512,
+                }
+            )
+            
+            # Extract and parse JSON
+            json_text = self._extract_json(response.text)
+            parsed_data = json.loads(json_text)
+            
+            # Validate and clean
+            parsed_data = self._validate_parsed_data(parsed_data)
             
             return parsed_data
             

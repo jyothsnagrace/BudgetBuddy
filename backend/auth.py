@@ -18,10 +18,9 @@ ACCESS_TOKEN_EXPIRE_DAYS = 30
 class AuthManager:
     """Handles authentication and token management"""
     
-    def __init__(self):
-        # Import database client (avoid circular import)
-        from database import DatabaseClient
-        self.db = DatabaseClient()
+    def __init__(self, db=None):
+        # Use shared database client to avoid connection issues
+        self.db = db
     
     async def login_or_create(self, username: str) -> Dict[str, Any]:
         """

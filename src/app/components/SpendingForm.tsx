@@ -205,16 +205,16 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
   // Helper: Map backend category to emoji category
   const mapCategoryToEmoji = (category: string): string => {
     const mapping: Record<string, string> = {
-      'Food': '🍔 Food',
+      'Food': '� Food',
       'Transportation': '🚗 Transportation',
-      'Entertainment': '🎬 Entertainment',
-      'Shopping': '🛒 Shopping',
-      'Bills': '🏠 Bills',
+      'Entertainment': '🎮 Entertainment',
+      'Shopping': '🛍️ Shopping',
+      'Bills': '🏠 Housing',
       'Healthcare': '💊 Healthcare',
       'Education': '📚 Education',
-      'Other': '✨ Other'
+      'Other': '💰 Other'
     };
-    return mapping[category] || '✨ Other';
+    return mapping[category] || '💰 Other';
   };
 
   return (
@@ -337,14 +337,9 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="🍔 Food">🍔 Food</SelectItem>
-                      <SelectItem value="🚗 Transportation">🚗 Transportation</SelectItem>
-                      <SelectItem value="🎬 Entertainment">🎬 Entertainment</SelectItem>
-                      <SelectItem value="🛒 Shopping">🛒 Shopping</SelectItem>
-                      <SelectItem value="🏠 Bills">🏠 Bills</SelectItem>
-                      <SelectItem value="💊 Healthcare">💊 Healthcare</SelectItem>
-                      <SelectItem value="📚 Education">📚 Education</SelectItem>
-                      <SelectItem value="✨ Other">✨ Other</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

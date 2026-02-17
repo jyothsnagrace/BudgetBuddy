@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { checkCompanionAvailability } from "./FriendshipStatus";
 import { Lock, Sparkles } from "lucide-react";
+import { API_URL } from "../../config";
 
 export function CompanionSelector() {
   const [selectedPet, setSelectedPet] = useState<'penguin' | 'dragon' | 'capybara' | 'cat'>(() => {
@@ -33,11 +34,29 @@ export function CompanionSelector() {
     return () => clearInterval(interval);
   }, []);
 
-  const handlePetChange = (pet: 'penguin' | 'dragon' | 'capybara' | 'cat') => {
+  const handlePetChange = async (pet: 'penguin' | 'dragon' | 'capybara' | 'cat') => {
     if (!availablePets[pet]) return; // Don't allow selecting locked pets
     
     setSelectedPet(pet);
     localStorage.setItem('selectedPet', pet);
+    
+    // Save to backend
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/user/profile`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ selected_pet: pet }),
+        });
+      } catch (error) {
+        console.error("Failed to save pet selection:", error);
+      }
+    }
+    
     // Trigger a storage event for same-tab updates
     window.dispatchEvent(new Event('storage'));
   };

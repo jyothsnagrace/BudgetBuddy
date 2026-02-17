@@ -3,25 +3,26 @@ BudgetBuddy Backend - Main FastAPI Application
 Graduate-level LLM Course Project
 """
 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables BEFORE importing modules that use them
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date
-import os
-from dotenv import load_dotenv
 
-# Import custom modules
+# Import custom modules (after environment variables are loaded)
 from llm_pipeline import LLMPipeline
 from function_calling import FunctionCallingSystem
 from receipt_parser import ReceiptParser
 from cost_of_living import CostOfLivingAPI
 from database import DatabaseClient
 from auth import AuthManager
-
-# Load environment variables
-load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -45,7 +46,7 @@ function_system = FunctionCallingSystem()
 receipt_parser = ReceiptParser()
 col_api = CostOfLivingAPI()
 db = DatabaseClient()
-auth_manager = AuthManager()
+auth_manager = AuthManager(db=db)  # Pass shared db instance
 
 # ============================================
 # PYDANTIC MODELS
@@ -82,7 +83,7 @@ class ExpenseResponse(BaseModel):
     amount: float
     category: str
     description: str
-    date: str
+    expense_date: str  # Changed from 'date' to match database field
     created_at: str
 
 class NaturalLanguageInput(BaseModel):
@@ -97,6 +98,18 @@ class BudgetCreate(BaseModel):
     monthly_limit: float = Field(..., gt=0)
     category: Optional[str] = None
     month: Optional[str] = None  # YYYY-MM format
+
+class UserProfileResponse(BaseModel):
+    id: str
+    username: str
+    display_name: str
+    selected_pet: str
+    friendship_level: int
+    last_activity: str
+    created_at: str
+
+class UpdatePetRequest(BaseModel):
+    selected_pet: str = Field(..., pattern='^(penguin|dragon|capybara|cat)$')
 
 # ============================================
 # HEALTH CHECK
@@ -148,6 +161,37 @@ async def verify_token(token: str):
         return {"valid": True, "user": user}
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+# ============================================
+# USER PROFILE
+# ============================================
+
+@app.get("/api/user/profile", response_model=UserProfileResponse)
+async def get_user_profile(
+    user_id: str = Depends(auth_manager.get_current_user)
+):
+    """Get current user's profile"""
+    try:
+        user = await db.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return UserProfileResponse(**user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.patch("/api/user/profile")
+async def update_user_profile(
+    update: UpdatePetRequest,
+    user_id: str = Depends(auth_manager.get_current_user)
+):
+    """Update user's selected pet"""
+    try:
+        await db.update_user_pet(user_id, update.selected_pet)
+        return {"success": True, "selected_pet": update.selected_pet}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
 # EXPENSE MANAGEMENT
