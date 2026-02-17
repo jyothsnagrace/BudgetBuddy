@@ -13,12 +13,12 @@ import os
 from dotenv import load_dotenv
 
 # Import custom modules
-from .llm_pipeline import LLMPipeline
-from .function_calling import FunctionCallingSystem
-from .receipt_parser import ReceiptParser
-from .cost_of_living import CostOfLivingAPI
-from .database import DatabaseClient
-from .auth import AuthManager
+from llm_pipeline import LLMPipeline
+from function_calling import FunctionCallingSystem
+from receipt_parser import ReceiptParser
+from cost_of_living import CostOfLivingAPI
+from database import DatabaseClient
+from auth import AuthManager
 
 # Load environment variables
 load_dotenv()
@@ -478,18 +478,18 @@ async def general_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_event():
     """Initialize connections on startup"""
-    print("🚀 BudgetBuddy API starting...")
+    print(">> BudgetBuddy API starting...")
     await db.connect()
-    print("✅ Database connected")
-    print("✅ LLM pipeline initialized")
-    print(f"✅ Server ready on port {os.getenv('PORT', 8000)}")
+    print(">> Database connected")
+    print(">> LLM pipeline initialized")
+    print(f">> Server ready on port {os.getenv('PORT', 8000)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up on shutdown"""
-    print("👋 BudgetBuddy API shutting down...")
+    print(">> BudgetBuddy API shutting down...")
     await db.disconnect()
-    print("✅ Cleanup complete")
+    print(">> Cleanup complete")
 
 if __name__ == "__main__":
     import uvicorn

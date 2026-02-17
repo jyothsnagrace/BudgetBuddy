@@ -128,7 +128,7 @@ class FunctionCallingSystem:
     def __init__(self):
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         # Import database client (avoid circular import)
-        from .database import DatabaseClient
+        from database import DatabaseClient
         self.db = DatabaseClient()
     
     def get_function_definitions(self) -> List[Dict]:

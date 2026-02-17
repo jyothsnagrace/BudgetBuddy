@@ -20,7 +20,7 @@ class AuthManager:
     
     def __init__(self):
         # Import database client (avoid circular import)
-        from .database import DatabaseClient
+        from database import DatabaseClient
         self.db = DatabaseClient()
     
     async def login_or_create(self, username: str) -> Dict[str, Any]:

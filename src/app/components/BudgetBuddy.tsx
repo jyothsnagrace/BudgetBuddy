@@ -8,16 +8,16 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { FriendshipStatus, updateLastActivity } from "./FriendshipStatus";
 
-import penguinHappy from "figma:asset/fbba302188e04ca2d593f3e940a704e23fb6ce1a.png";
-import penguinWorried from "figma:asset/14f5b24ae0b95c5793fe4ce907a3872db569858e.png";
-import penguinExcited from "figma:asset/38b0579ff87cabd0f427c06c7ea35d012c055d4d.png";
-import dragonHappy from "figma:asset/835e6fe3cc0ed512b0f3ba25f92556132c86ca20.png";
-import dragonSad from "figma:asset/de0eae5ba109e1402e185ce935a0879c15f13c17.png";
-import capybaraHappy from "figma:asset/69a2f1a32bd4fa80f69d66d834fd908ee5f50ad6.png";
-import capybaraStressed from "figma:asset/aa21c86fb48770aeb915e1b7b935989521daa798.png";
-import capybaraCalm from "figma:asset/3169bd69bd5f0eaf252ff9771e2a6db105ea904c.png";
-import catHappy from "figma:asset/42b57efd4a1c816f85ea6c44dd59193061d242ae.png";
-import catSad from "figma:asset/0dc12595ce0fcafab901ae360f2da8807fe74d2c.png";
+import penguinHappy from "../../assets/penguin-happy.png";
+import penguinWorried from "../../assets/penguin-worried.png";
+import penguinExcited from "../../assets/penguin-excited.png";
+import dragonHappy from "../../assets/dragon-happy.png";
+import dragonSad from "../../assets/dragon-sad.png";
+import capybaraHappy from "../../assets/capybara-happy.png";
+import capybaraStressed from "../../assets/capybara-stressed.png";
+import capybaraCalm from "../../assets/capybara-sad.png";
+import catHappy from "../../assets/cat-happy.png";
+import catSad from "../../assets/cat-sad.png";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 

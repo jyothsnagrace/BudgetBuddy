@@ -23,7 +23,7 @@ class DatabaseClient:
     async def connect(self):
         """Initialize Supabase client"""
         if not SUPABASE_URL or not SUPABASE_KEY:
-            print("⚠️  Warning: Supabase credentials not configured")
+            print("WARNING: Supabase credentials not configured")
             print("    Using mock mode for development")
             self._connected = False
             return
@@ -31,9 +31,9 @@ class DatabaseClient:
         try:
             self.client = create_client(SUPABASE_URL, SUPABASE_KEY)
             self._connected = True
-            print("✅ Connected to Supabase")
+            print(">> Connected to Supabase")
         except Exception as e:
-            print(f"❌ Supabase connection failed: {e}")
+            print(f"ERROR: Supabase connection failed: {e}")
             self._connected = False
     
     async def disconnect(self):

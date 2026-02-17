@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, LogOut } from "lucide-react";
 import { BudgetSummary } from "./components/BudgetSummary";
 import { SpendingForm } from "./components/SpendingForm";
 import { ExpenseList } from "./components/ExpenseList";
@@ -8,11 +8,14 @@ import { BudgetSettings } from "./components/BudgetSettings";
 import { SpendingGraph } from "./components/SpendingGraph";
 import { SpendingCalendar } from "./components/SpendingCalendar";
 import { CompanionSelector } from "./components/CompanionSelector";
+import { Login } from "./components/Login";
 import { updateLastActivity } from "./components/FriendshipStatus";
-import snowyBackground from "figma:asset/24c342c9b907dd7af46c17a7505a42b4711e2299.png";
-import dragonBackground from "figma:asset/37fa4f83743a018706213713ff43d568f0c96eaf.png";
-import capybaraBackground from "figma:asset/d21921f8a15a74720c7407c80f0c3278886fcea6.png";
-import catBackground from "figma:asset/a0e9233cd7bfbcb758aa16b4bb7865d422456acf.png";
+import { Button } from "./components/ui/button";
+import { API_URL } from "../config";
+import snowyBackground from "../assets/background-snowy.png";
+import dragonBackground from "../assets/background-dragon.png";
+import capybaraBackground from "../assets/background-capybara.png";
+import catBackground from "../assets/background-cat.png";
 
 interface Expense {
   id: string;
@@ -22,26 +25,95 @@ interface Expense {
   date: string;
 }
 
+// Category mapping helpers
+const frontendToBackendCategory = (frontendCat: string): string => {
+  const categoryMap: { [key: string]: string } = {
+    "🍕 Food": "Food",
+    "🏠 Housing": "Bills",
+    "🚗 Transportation": "Transportation",
+    "🎮 Entertainment": "Entertainment",
+    "🛍️ Shopping": "Shopping",
+    "💊 Healthcare": "Healthcare",
+    "📚 Education": "Education",
+    "💰 Other": "Other",
+  };
+  return categoryMap[frontendCat] || "Other";
+};
+
+const backendToFrontendCategory = (backendCat: string): string => {
+  const categoryMap: { [key: string]: string } = {
+    "Food": "🍕 Food",
+    "Bills": "🏠 Housing",
+    "Transportation": "🚗 Transportation",
+    "Entertainment": "🎮 Entertainment",
+    "Shopping": "🛍️ Shopping",
+    "Healthcare": "💊 Healthcare",
+    "Education": "📚 Education",
+    "Other": "💰 Other",
+  };
+  return categoryMap[backendCat] || "💰 Other";
+};
+
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem("token");
+  });
+  
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem("username") || "";
+  });
+
   const [budget, setBudget] = useState(() => {
     const saved = localStorage.getItem("budget");
     return saved ? parseFloat(saved) : 2000;
   });
 
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem("expenses");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
 
   const [selectedPet, setSelectedPet] = useState<'penguin' | 'dragon' | 'capybara' | 'cat'>(() => {
     const saved = localStorage.getItem('selectedPet');
     return (saved as 'penguin' | 'dragon' | 'capybara' | 'cat') || 'penguin';
   });
 
-  // Update activity on app load
+  // Fetch expenses from backend on mount if authenticated
   useEffect(() => {
-    updateLastActivity();
-  }, []);
+    if (isAuthenticated) {
+      updateLastActivity();
+      fetchExpenses();
+    }
+  }, [isAuthenticated]);
+
+  const fetchExpenses = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setIsLoadingExpenses(true);
+    try {
+      const response = await fetch(`${API_URL}/api/expenses`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Map backend expense_date and category to frontend format
+        const mappedExpenses = (data.expenses || []).map((expense: any) => ({
+          id: expense.id,
+          amount: expense.amount,
+          category: backendToFrontendCategory(expense.category),
+          description: expense.description,
+          date: expense.expense_date,
+        }));
+        setExpenses(mappedExpenses);
+      }
+    } catch (error) {
+      console.error("Failed to fetch expenses:", error);
+    } finally {
+      setIsLoadingExpenses(false);
+    }
+  };
 
   // Listen for pet changes from localStorage
   useEffect(() => {
@@ -72,29 +144,100 @@ export default function App() {
     localStorage.setItem("budget", budget.toString());
   }, [budget]);
 
-  useEffect(() => {
-    localStorage.setItem("expenses", JSON.stringify(expenses));
-  }, [expenses]);
+  // No longer saving expenses to localStorage - using backend instead
 
-  const handleAddExpense = (
+  const handleAddExpense = async (
     expenseData: Omit<Expense, "id">,
   ) => {
-    const newExpense: Expense = {
-      ...expenseData,
-      id: Date.now().toString(),
-    };
-    setExpenses((prev) => [...prev, newExpense]);
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      // Convert frontend emoji category to backend category
+      const backendCategory = frontendToBackendCategory(expenseData.category);
+      
+      // Format date to YYYY-MM-DD for PostgreSQL
+      const dateObj = new Date(expenseData.date);
+      const formattedDate = dateObj.toISOString().split('T')[0];
+      
+      const response = await fetch(`${API_URL}/api/expenses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: expenseData.amount,
+          category: backendCategory,
+          description: expenseData.description,
+          date: formattedDate,
+        }),
+      });
+
+      if (response.ok) {
+        const backendExpense = await response.json();
+        // Map backend expense_date and category to frontend format
+        const newExpense: Expense = {
+          id: backendExpense.id,
+          amount: backendExpense.amount,
+          category: expenseData.category, // Keep original frontend category with emoji
+          description: backendExpense.description,
+          date: backendExpense.expense_date,
+        };
+        setExpenses((prev) => [...prev, newExpense]);
+      } else {
+        const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+        console.error("Failed to add expense:", errorData);
+      }
+    } catch (error) {
+      console.error("Error adding expense:", error);
+    }
   };
 
-  const handleDeleteExpense = (id: string) => {
-    setExpenses((prev) =>
-      prev.filter((expense) => expense.id !== id),
-    );
+  const handleDeleteExpense = async (id: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/expenses/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+      } else {
+        console.error("Failed to delete expense");
+      }
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
   };
 
   const handleUpdateBudget = (newBudget: number) => {
     setBudget(newBudget);
   };
+
+  const handleLogin = async (username: string, token: string, userId: string) => {
+    setUsername(username);
+    setIsAuthenticated(true);
+    // Expenses will be fetched by the useEffect that watches isAuthenticated
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("userId");
+    setIsAuthenticated(false);
+    setUsername("");
+  };
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   // Calculate totals
   const totalSpent = expenses.reduce(
@@ -157,14 +300,25 @@ export default function App() {
                     Budget Buddy
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                    Your adorable spending companion
+                    Welcome, {username}!
                   </p>
                 </div>
               </div>
-              <BudgetSettings
-                currentBudget={budget}
-                onUpdateBudget={handleUpdateBudget}
-              />
+              <div className="flex items-center gap-2">
+                <BudgetSettings
+                  currentBudget={budget}
+                  onUpdateBudget={handleUpdateBudget}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
+              </div>
             </div>
           </div>
         </header>

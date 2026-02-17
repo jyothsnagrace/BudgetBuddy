@@ -7,7 +7,7 @@ LLM #2: Normalization & Validation Agent
 import os
 import json
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, date
 import google.generativeai as genai
 from jsonschema import validate, ValidationError
