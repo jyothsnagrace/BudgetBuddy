@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { Send, Sparkles, Heart } from "lucide-react";
+import { Send, Sparkles, Heart, MapPin } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { FriendshipStatus, updateLastActivity } from "./FriendshipStatus";
+import { API_URL } from "../../config";
 
 import penguinHappy from "../../assets/penguin-happy.png";
 import penguinWorried from "../../assets/penguin-worried.png";
@@ -18,8 +19,6 @@ import capybaraStressed from "../../assets/capybara-stressed.png";
 import capybaraCalm from "../../assets/capybara-sad.png";
 import catHappy from "../../assets/cat-happy.png";
 import catSad from "../../assets/cat-sad.png";
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 interface Message {
   id: string;
@@ -39,60 +38,39 @@ interface BudgetBuddyProps {
   categoryTotals: { [key: string]: number };
 }
 
-/* ================= GEMINI CHAT ================= */
+/* ================= ENHANCED BACKEND CHAT ================= */
 
-async function chatWithGemini(messages: Message[], context: string, petType: 'penguin' | 'dragon' | 'capybara' | 'cat') {
-  const formatted = messages.map((m) => ({
-    role: m.sender === "user" ? "user" : "model",
-    parts: [{ text: m.text }],
-  }));
+async function chatWithBackend(message: string, city?: string) {
+  const token = localStorage.getItem("token");
+  
+  if (!token) {
+    return "Please login to chat with me! 🔒";
+  }
 
-  const petPersonality = petType === 'penguin'
-    ? "You are Penny the Penguin 🐧, a friendly and warm budgeting assistant. Keep replies short, cheerful, and practical."
-    : petType === 'dragon'
-    ? "You are Esper the Dragon 🐉, a wise and enthusiastic budgeting guardian. Keep replies short, magical, and inspiring with a bit of dragon flair."
-    : petType === 'cat'
-    ? "You are Mochi the Cat 🐱, a playful and sweet budgeting assistant. Keep replies short, cute, and encouraging with a bit of cat charm."
-    : "You are Capy the Capybara 🦫, a calm and thoughtful budgeting buddy. Keep replies short, relaxed, and helpful.";
-
-  // Inject system + budget context
-  formatted.unshift({
-    role: "user",
-    parts: [
-      {
-        text: `${petPersonality}
-
-Current user context:
-${context}
-`,
-      },
-    ],
-  });
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
+  try {
+    const response = await fetch(`${API_URL}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify({
-        contents: formatted,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 512,
-        },
+        message: message,
+        city: city || null,
+        context: {}
       }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Chat request failed");
     }
-  );
 
-  const data = await res.json();
-
-  const petName = petType === 'penguin' ? 'Penny' : petType === 'dragon' ? 'Esper' : petType === 'cat' ? 'Mochi' : 'Capy';
-  return (
-    data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-    `Sorry — ${petName} got tongue-tied 😅`
-  );
+    const data = await response.json();
+    return data.response || "Sorry, I couldn't generate a response 😅";
+  } catch (error) {
+    console.error("Chat error:", error);
+    return "Oops, I'm having connection trouble! Try again? 💭";
+  }
 }
 
 /* ================= COMPONENT ================= */
@@ -109,10 +87,12 @@ export function BudgetBuddy({
   });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [city, setCity] = useState("");
   const [buddyMood, setBuddyMood] = useState<"happy" | "worried" | "excited">(
     "happy"
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [petAnimation, setPetAnimation] = useState(0);
 
   /* ===== Save Pet Selection ===== */
@@ -160,13 +140,16 @@ export function BudgetBuddy({
   /* ===== Initial Greeting ===== */
 
   useEffect(() => {
+    const petName = getPetName();
+    const cityText = city ? ` I see you're in ${city}! 📍` : '';
+    
     const greetingText = petType === 'penguin'
-      ? "Hi! I'm Penny 🐧 — your budgeting buddy. Ask me anything about your spending!"
+      ? `Hi! I'm Penny 🐧 — your budgeting buddy.${cityText} Ask me anything about your spending or local costs!`
       : petType === 'dragon'
-      ? "Greetings! I'm Esper 🐉 — your wise budget guardian. Ask me anything about your treasure hoard!"
+      ? `Greetings! I'm Esper 🐉 — guardian of your treasure hoard.${cityText} Ask me for ancient wisdom about spending!`
       : petType === 'cat'
-      ? "Hello! I'm Mochi 🐱 — your playful budgeting assistant. Ask me anything about your finances!"
-      : "Hello! I'm Capy 🦫 — your calm budgeting buddy. Ask me anything about your finances!";
+      ? `*Purrs* Hello! I'm Mochi 🐱 — your sassy money friend.${cityText} Ask me anything, fur real!`
+      : `Hey there! I'm Capy 🦫 — your chill budgeting buddy.${cityText} No stress, just ask me anything!`
     
     setMessages([
       {
@@ -176,7 +159,7 @@ export function BudgetBuddy({
         timestamp: new Date(),
       },
     ]);
-  }, [petType]);
+  }, [petType, city]);
 
   /* ===== Auto Scroll (only on new messages, not on pet change) ===== */
 
@@ -202,25 +185,14 @@ export function BudgetBuddy({
       timestamp: new Date(),
     };
 
-    const updated = [...messages, userMessage];
-    setMessages(updated);
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput("");
     setPetAnimation((p) => p + 1);
 
-    const context = `
-Budget: $${budget}
-Total spent: $${totalSpent}
-Remaining: $${(budget - totalSpent).toFixed(2)}
-
-Category totals:
-${JSON.stringify(categoryTotals, null, 2)}
-
-Recent expenses:
-${JSON.stringify(recentExpenses.slice(0, 5), null, 2)}
-`;
-
     try {
-      const reply = await chatWithGemini(updated, context, petType);
+      // Use enhanced backend API with city support
+      const reply = await chatWithBackend(currentInput, city || undefined);
 
       setMessages((prev) => [
         ...prev,
@@ -231,17 +203,23 @@ ${JSON.stringify(recentExpenses.slice(0, 5), null, 2)}
           timestamp: new Date(),
         },
       ]);
-    } catch {
+      
+      // Update last activity for friendship level
+      updateLastActivity();
+    } catch (error) {
       const petName = getPetName();
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
-          text: `Oops — ${petName} couldn't reach Gemini 😢`,
+          text: `Oops — ${petName} couldn't connect! 😢 Try again?`,
           sender: "buddy",
           timestamp: new Date(),
         },
       ]);
+    } finally {
+      // Focus back on input for quick follow-up questions
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
@@ -352,24 +330,121 @@ ${JSON.stringify(recentExpenses.slice(0, 5), null, 2)}
       {/* Chat */}
 
       <Card className={`border-2 ${petType === 'penguin' ? 'border-cyan-300' : petType === 'dragon' ? 'border-purple-300' : petType === 'cat' ? 'border-pink-300' : 'border-green-300'} bg-white/85 shadow-lg`}>
-        <CardHeader>
-          <CardTitle>Chat with {getPetName()}</CardTitle>
+        <CardHeader className="space-y-1 pb-3">
+          <CardTitle className="text-xl font-bold">Ask Your AI Advisor</CardTitle>
+          <p className="text-sm text-gray-600">
+            Get location-aware financial advice from {getPetName()}!
+          </p>
         </CardHeader>
 
-        <CardContent className="space-y-3">
-          <ScrollArea className="h-64 border rounded p-3">
+        <CardContent className="space-y-4">
+          {/* City Selector */}
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+            <Select value={city} onValueChange={setCity}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select a city (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="New York">New York, NY</SelectItem>
+                <SelectItem value="Los Angeles">Los Angeles, CA</SelectItem>
+                <SelectItem value="Chicago">Chicago, IL</SelectItem>
+                <SelectItem value="Houston">Houston, TX</SelectItem>
+                <SelectItem value="Phoenix">Phoenix, AZ</SelectItem>
+                <SelectItem value="Philadelphia">Philadelphia, PA</SelectItem>
+                <SelectItem value="San Antonio">San Antonio, TX</SelectItem>
+                <SelectItem value="San Diego">San Diego, CA</SelectItem>
+                <SelectItem value="Dallas">Dallas, TX</SelectItem>
+                <SelectItem value="San Jose">San Jose, CA</SelectItem>
+                <SelectItem value="Austin">Austin, TX</SelectItem>
+                <SelectItem value="Jacksonville">Jacksonville, FL</SelectItem>
+                <SelectItem value="Fort Worth">Fort Worth, TX</SelectItem>
+                <SelectItem value="Columbus">Columbus, OH</SelectItem>
+                <SelectItem value="Charlotte">Charlotte, NC</SelectItem>
+                <SelectItem value="San Francisco">San Francisco, CA</SelectItem>
+                <SelectItem value="Indianapolis">Indianapolis, IN</SelectItem>
+                <SelectItem value="Seattle">Seattle, WA</SelectItem>
+                <SelectItem value="Denver">Denver, CO</SelectItem>
+                <SelectItem value="Boston">Boston, MA</SelectItem>
+                <SelectItem value="Washington">Washington, DC</SelectItem>
+                <SelectItem value="Nashville">Nashville, TN</SelectItem>
+                <SelectItem value="Portland">Portland, OR</SelectItem>
+                <SelectItem value="Las Vegas">Las Vegas, NV</SelectItem>
+                <SelectItem value="Detroit">Detroit, MI</SelectItem>
+                <SelectItem value="Miami">Miami, FL</SelectItem>
+                <SelectItem value="Atlanta">Atlanta, GA</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Example Questions */}
+          <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+            <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Try asking:
+            </p>
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setInput(`Is it smarter to buy or rent in ${city || 'Charlotte'}?`);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
+                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+              >
+                <span className="text-base flex-shrink-0">🏠</span>
+                <span>"Is it smarter to buy or rent in {city || 'Charlotte'}?"</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInput(`Which are budget friendly restaurants in ${city || 'Charlotte'}?`);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
+                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+              >
+                <span className="text-base flex-shrink-0">🍽️</span>
+                <span>"Which are budget friendly restaurants in {city || 'Charlotte'}?"</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInput(`How does my spending compare to ${city || 'Charlotte'} average?`);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
+                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+              >
+                <span className="text-base flex-shrink-0">📊</span>
+                <span>"How does my spending compare to {city || 'Charlotte'} average?"</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInput(`What's the cost of living in ${city || 'Charlotte'}?`);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
+                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+              >
+                <span className="text-base flex-shrink-0">🏠</span>
+                <span>"What's the cost of living in {city || 'Charlotte'}?"</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <ScrollArea className="h-64 bg-gray-50 border border-gray-200 rounded-lg p-3">
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`mb-2 flex ${
+                className={`mb-3 flex ${
                   m.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
                 <div
-                  className={`px-3 py-2 rounded-xl max-w-[80%] ${
+                  className={`px-4 py-2.5 rounded-2xl max-w-[85%] shadow-sm ${
                     m.sender === "user"
                       ? "bg-blue-500 text-white"
-                      : "bg-white border"
+                      : "bg-white border border-gray-200 text-gray-800"
                   }`}
                 >
                   {m.text}
@@ -379,6 +454,7 @@ ${JSON.stringify(recentExpenses.slice(0, 5), null, 2)}
             <div ref={scrollRef} />
           </ScrollArea>
 
+          {/* Input Form */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -387,12 +463,19 @@ ${JSON.stringify(recentExpenses.slice(0, 5), null, 2)}
             className="flex gap-2"
           >
             <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Ask ${getPetName()} anything...`}
+              placeholder={city ? `Ask about ${city}...` : `Ask about Charlotte...`}
+              className="flex-1"
+              autoFocus
             />
 
-            <Button type="submit" size="icon">
+            <Button 
+              type="submit" 
+              size="icon"
+              className="bg-black hover:bg-gray-800 rounded-lg"
+            >
               <Send className="h-4 w-4" />
             </Button>
           </form>

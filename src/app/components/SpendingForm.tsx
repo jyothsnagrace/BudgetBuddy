@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Calendar as CalendarIcon, Sparkles, Camera, Edit3 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Sparkles, Camera } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -46,13 +46,12 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
   const [quickText, setQuickText] = useState('');
   const [isParsingQuick, setIsParsingQuick] = useState(false);
   
-  // Receipt photo state
+  // Receipt state
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
-  const [isParsingReceipt, setIsParsingReceipt] = useState(false);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   
-  // Tab control - Default to Manual Entry
-  const [activeTab, setActiveTab] = useState('manual');
+  // Tab control - Default to Quick Add
+  const [activeTab, setActiveTab] = useState('quick');
   
   // Refs for focus management
   const manualFormRef = useRef<HTMLDivElement>(null);
@@ -97,51 +96,96 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
     }
   };
   
-  // Quick Add: Parse natural language
+  // Quick Add: Parse natural language or receipt
   const handleParseQuickAdd = async () => {
-    if (!quickText.trim()) return;
+    // Check if we have receipt or text
+    if (!quickText.trim() && !receiptImage) return;
+    
+    // Get auth token
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert('Please log in to use this feature.');
+      return;
+    }
     
     setIsParsingQuick(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/parse-expense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: quickText })
-      });
+      let parsed;
       
-      if (!response.ok) throw new Error('Failed to parse expense');
-      
-      const data = await response.json();
-      const parsed = data.parsed_data;
-      
-      // Fill manual form with parsed data
-      setAmount(parsed.amount.toString());
-      setCategory(mapCategoryToEmoji(parsed.category));
-      setDescription(parsed.description || '');
-      setDate(new Date(parsed.date));
-      
-      // Switch to manual tab and focus
-      setActiveTab('manual');
-      setQuickText('');
-      
-      // Focus on manual form
-      setTimeout(() => {
-        if (manualFormRef.current) {
-          const firstInput = manualFormRef.current.querySelector('input');
-          if (firstInput) (firstInput as HTMLInputElement).focus();
+      // If receipt image exists, parse receipt
+      if (receiptImage) {
+        const formData = new FormData();
+        formData.append('file', receiptImage);
+        
+        const response = await fetch(`${API_BASE_URL}/api/parse-receipt`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          throw new Error(errorData.detail || 'Failed to parse receipt');
         }
-      }, 100);
+        const data = await response.json();
+        parsed = data.parsed_data;
+      } 
+      // Otherwise parse text
+      else if (quickText.trim()) {
+        const response = await fetch(`${API_BASE_URL}/api/parse-expense`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ text: quickText })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          throw new Error(errorData.detail || 'Failed to parse expense');
+        }
+        const data = await response.json();
+        parsed = data.parsed_data;
+      }
+      
+      if (parsed) {
+        // Fill manual form with parsed data
+        setAmount(parsed.amount.toString());
+        setCategory(mapCategoryToEmoji(parsed.category));
+        setDescription(parsed.description || '');
+        setDate(new Date(parsed.date));
+        
+        // Clear inputs
+        setQuickText('');
+        setReceiptImage(null);
+        setReceiptPreview(null);
+        
+        // Switch to manual tab and focus
+        setActiveTab('manual');
+        
+        // Focus on manual form
+        setTimeout(() => {
+          if (manualFormRef.current) {
+            const firstInput = manualFormRef.current.querySelector('input');
+            if (firstInput) (firstInput as HTMLInputElement).focus();
+          }
+        }, 100);
+      }
       
     } catch (error) {
       console.error('Parse error:', error);
-      alert('Failed to parse expense. Please try again or use manual entry.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to parse expense. Please try again or use manual entry.';
+      alert(errorMessage);
     } finally {
       setIsParsingQuick(false);
     }
   };
   
-  // Receipt Photo: Parse image
+  // Receipt Photo: Upload handler
   const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -154,52 +198,6 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
       setReceiptPreview(event.target?.result as string);
     };
     reader.readAsDataURL(file);
-  };
-  
-  const handleParseReceipt = async () => {
-    if (!receiptImage) return;
-    
-    setIsParsingReceipt(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', receiptImage);
-      
-      const response = await fetch(`${API_BASE_URL}/api/parse-receipt`, {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) throw new Error('Failed to parse receipt');
-      
-      const data = await response.json();
-      const parsed = data.parsed_data;
-      
-      // Fill manual form with parsed data
-      setAmount(parsed.amount.toString());
-      setCategory(mapCategoryToEmoji(parsed.category));
-      setDescription(parsed.description || '');
-      setDate(new Date(parsed.date));
-      
-      // Switch to manual tab
-      setActiveTab('manual');
-      setReceiptImage(null);
-      setReceiptPreview(null);
-      
-      // Focus on manual form
-      setTimeout(() => {
-        if (manualFormRef.current) {
-          const firstInput = manualFormRef.current.querySelector('input');
-          if (firstInput) (firstInput as HTMLInputElement).focus();
-        }
-      }, 100);
-      
-    } catch (error) {
-      console.error('Receipt parse error:', error);
-      alert('Failed to parse receipt. Please try manual entry.');
-    } finally {
-      setIsParsingReceipt(false);
-    }
   };
   
   // Helper: Map backend category to emoji category
@@ -224,65 +222,63 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="quick" className="text-xs sm:text-sm">
               <Sparkles className="w-4 h-4 mr-1" />
               Quick Add
             </TabsTrigger>
-            <TabsTrigger value="photo" className="text-xs sm:text-sm">
-              <Camera className="w-4 h-4 mr-1" />
-              Receipt
-            </TabsTrigger>
             <TabsTrigger value="manual" className="text-xs sm:text-sm">
-              <Edit3 className="w-4 h-4 mr-1" />
-              Manual
+              <Plus className="w-4 h-4 mr-1" />
+              Manual Entry
             </TabsTrigger>
           </TabsList>
           
           {/* Quick Add Tab */}
           <TabsContent value="quick" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="quick-input">Type naturally</Label>
+              <Label htmlFor="quick-input">Type naturally or upload receipt 📄 🖼️</Label>
               <Textarea
                 id="quick-input"
                 ref={quickInputRef}
-                placeholder='Example: "Lunch at Chipotle $15" or "Coffee $5.50 today"'
+                placeholder='Try: "I spent 45 dollars on pizza" or "Paid $30 for uber today"'
                 value={quickText}
                 onChange={(e) => setQuickText(e.target.value)}
                 rows={3}
                 className="resize-none"
               />
             </div>
-            <Button
-              onClick={handleParseQuickAdd}
-              disabled={!quickText.trim() || isParsingQuick}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-            >
-              {isParsingQuick ? (
-                <>Processing...</>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Parse & Fill
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              AI will extract the details and switch to Manual tab for review
-            </p>
-          </TabsContent>
-          
-          {/* Receipt Photo Tab */}
-          <TabsContent value="photo" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="receipt-upload">Upload Receipt Photo</Label>
-              <Input
-                id="receipt-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleReceiptUpload}
-                className="cursor-pointer"
-              />
+            
+            <div className="flex items-center gap-3">
+              <div className="flex-grow">
+                <Label htmlFor="receipt-upload" className="cursor-pointer">
+                  <div className="flex items-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg hover:bg-gray-50 transition-colors">
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm">{receiptImage ? receiptImage.name : 'Upload Receipt'}</span>
+                  </div>
+                </Label>
+                <Input
+                  id="receipt-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReceiptUpload}
+                  className="hidden"
+                />
+              </div>
+              
+              <Button
+                onClick={handleParseQuickAdd}
+                disabled={(!quickText.trim() && !receiptImage) || isParsingQuick}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                {isParsingQuick ? (
+                  <>Parsing...</>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Parse & Fill
+                  </>
+                )}
+              </Button>
             </div>
             
             {receiptPreview && (
@@ -290,27 +286,13 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
                 <img 
                   src={receiptPreview} 
                   alt="Receipt preview" 
-                  className="w-full max-h-64 object-contain rounded-lg border"
+                  className="w-full max-h-48 object-contain rounded-lg border"
                 />
               </div>
             )}
             
-            <Button
-              onClick={handleParseReceipt}
-              disabled={!receiptImage || isParsingReceipt}
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-            >
-              {isParsingReceipt ? (
-                <>Analyzing Receipt...</>
-              ) : (
-                <>
-                  <Camera className="mr-2 h-4 w-4" />
-                  Parse Receipt
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Vision AI will extract expense data and auto-fill the form
+            <p className="text-xs text-gray-500 text-center">
+              💡 Upload a receipt or type naturally, then parse to auto-fill the form
             </p>
           </TabsContent>
           

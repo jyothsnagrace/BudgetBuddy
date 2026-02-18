@@ -12,8 +12,26 @@ from datetime import datetime, date
 import google.generativeai as genai
 from jsonschema import validate, ValidationError
 
-# Configure Gemini
+# Try to import Groq
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+    print("Warning: groq package not installed. Install with: pip install groq")
+
+# Configure LLM providers
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Initialize Groq client
+groq_client = None
+if GROQ_API_KEY and GROQ_AVAILABLE:
+    groq_client = Groq(api_key=GROQ_API_KEY)
+
+# Configure Gemini
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
@@ -59,18 +77,44 @@ class LLMPipeline:
     """Two-stage LLM pipeline for expense processing"""
     
     def __init__(self):
-        print(f"[LLMPipeline] Initializing with gemini-2.5-flash")
-        self.extraction_model = genai.GenerativeModel('gemini-2.5-flash')
-        print(f"[LLMPipeline] Extraction model: {self.extraction_model._model_name}")
-        self.normalization_model = genai.GenerativeModel('gemini-2.5-flash')
-        self.chat_model = genai.GenerativeModel('gemini-2.5-flash')
+        self.provider = LLM_PROVIDER
+        
+        print(f"[LLMPipeline] DEBUG: LLM_PROVIDER env = '{os.getenv('LLM_PROVIDER')}'")
+        print(f"[LLMPipeline] DEBUG: self.provider = '{self.provider}'")
+        print(f"[LLMPipeline] DEBUG: GROQ_AVAILABLE = {GROQ_AVAILABLE}")
+        print(f"[LLMPipeline] DEBUG: groq_client = {groq_client}")
+        
+        if self.provider == "groq":
+            if not groq_client:
+                print("[LLMPipeline] ⚠️ Groq requested but not available, falling back to Gemini")
+                self.provider = "gemini"
+            else:
+                print(f"[LLMPipeline] Initializing with Groq ({GROQ_MODEL})")
+                self.groq_client = groq_client
+                self.groq_model = GROQ_MODEL
+        
+        if self.provider == "gemini":
+            print(f"[LLMPipeline] Initializing with gemini-2.5-flash")
+            self.extraction_model = genai.GenerativeModel('gemini-2.5-flash')
+            print(f"[LLMPipeline] Extraction model: {self.extraction_model._model_name}")
+            self.normalization_model = genai.GenerativeModel('gemini-2.5-flash')
+            self.chat_model = genai.GenerativeModel('gemini-2.5-flash')
         
     def health_check(self) -> bool:
         """Check if LLM service is available"""
         try:
-            # Simple test generation
-            response = self.extraction_model.generate_content("Say 'OK'")
-            return bool(response.text)
+            if self.provider == "groq":
+                # Test Groq
+                response = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[{"role": "user", "content": "Say OK"}],
+                    max_tokens=10
+                )
+                return bool(response.choices[0].message.content)
+            else:
+                # Test Gemini
+                response = self.extraction_model.generate_content("Say 'OK'")
+                return bool(response.text)
         except Exception as e:
             print(f"[LLM Health Check] Failed: {e}")
             return False
@@ -82,6 +126,8 @@ class LLMPipeline:
         Stage 1: Extract raw structured data
         Stage 2: Normalize and validate
         """
+        print(f"[parse_expense] DEBUG: provider = '{self.provider}'")
+        
         # Stage 1: Extraction
         extracted_data = await self._extraction_stage(natural_text)
         
@@ -97,6 +143,9 @@ class LLMPipeline:
         """
         LLM #1: Extract structured data from natural language
         """
+        print(f"[_extraction_stage] DEBUG: provider = '{self.provider}'")
+        print(f"[_extraction_stage] DEBUG: has groq_client = {hasattr(self, 'groq_client')}")
+        
         prompt = f"""You are an expense extraction assistant. Extract expense information from the following text.
 
 Text: "{text}"
@@ -120,16 +169,37 @@ Example:
 Now extract from the given text:"""
         
         try:
-            response = self.extraction_model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.3,  # Low temperature for consistency
-                    'max_output_tokens': 256,
-                }
-            )
+            if self.provider == "groq":
+                # Use Groq API
+                response = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expense extraction assistant. Extract structured data and return only valid JSON."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.3,
+                    max_tokens=256,
+                )
+                llm_response = response.choices[0].message.content
+            else:
+                # Use Gemini API
+                response = self.extraction_model.generate_content(
+                    prompt,
+                    generation_config={
+                        'temperature': 0.3,
+                        'max_output_tokens': 256,
+                    }
+                )
+                llm_response = response.text
             
             # Extract JSON from response
-            json_text = self._extract_json(response.text)
+            json_text = self._extract_json(llm_response)
             parsed_data = json.loads(json_text)
             
             return parsed_data
@@ -173,16 +243,37 @@ Return ONLY a normalized JSON object:
 Return ONLY valid JSON, no other text."""
         
         try:
-            response = self.normalization_model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.2,  # Very low temperature for consistency
-                    'max_output_tokens': 256,
-                }
-            )
+            if self.provider == "groq":
+                # Use Groq API
+                response = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a data normalization assistant. Clean and validate data and return only valid JSON."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.2,
+                    max_tokens=256,
+                )
+                llm_response = response.choices[0].message.content
+            else:
+                # Use Gemini API
+                response = self.normalization_model.generate_content(
+                    prompt,
+                    generation_config={
+                        'temperature': 0.2,
+                        'max_output_tokens': 256,
+                    }
+                )
+                llm_response = response.text
             
             # Extract JSON from response
-            json_text = self._extract_json(response.text)
+            json_text = self._extract_json(llm_response)
             normalized_data = json.loads(json_text)
             
             return normalized_data
@@ -252,7 +343,7 @@ Return ONLY valid JSON, no other text."""
     ) -> str:
         """
         Generate smart chatbot response
-        City-aware, context-aware, personality-based
+        City-aware, context-aware, personality-based, mood-aware
         """
         # Get pet personality
         pet_type = user_context.get('selected_pet', 'penguin')
@@ -265,6 +356,20 @@ Return ONLY valid JSON, no other text."""
         total_spent = user_context.get('total_spent', 0)
         remaining = budget - total_spent
         
+        # Determine mood based on budget status
+        if remaining < 0:
+            mood = "concerned (user is over budget)"
+            mood_instruction = "Be gentle but encouraging. Offer support and practical tips."
+        elif remaining < budget * 0.2:
+            mood = "cautiously optimistic (budget running low)"
+            mood_instruction = "Be supportive and help them stretch remaining budget."
+        elif remaining > budget * 0.5:
+            mood = "happy and celebratory (doing great!)"
+            mood_instruction = "Be cheerful and congratulate them! Encourage continued good habits."
+        else:
+            mood = "positive and encouraging (on track)"
+            mood_instruction = "Be upbeat and keep their motivation going!"
+        
         city_info = ""
         if col_data:
             city_info = f"\n\nCost of living data for {col_data.get('city')}:\n"
@@ -273,6 +378,9 @@ Return ONLY valid JSON, no other text."""
             city_info += f"- Groceries Index: {col_data.get('groceries_index', 'N/A')}"
         
         prompt = f"""{personality}
+
+CURRENT MOOD: {mood}
+{mood_instruction}
 
 User's Budget Context:
 - Monthly Budget: ${budget:.2f}
@@ -283,22 +391,60 @@ User's Budget Context:
 
 User's question: "{message}"
 
-Provide a brief, helpful, and personality-appropriate response. Keep it under 100 words.
-Be conversational, use the pet's personality, and give actionable advice when relevant."""
+Response requirements:
+1. Maximum 2-3 sentences
+2. Stay in character with your personality
+3. Include at least one personality trait (pun/mystical phrase/zen word/purr)
+4. Adjust tone to match the mood
+5. Be helpful and give actionable advice when relevant"""
         
         try:
-            response = self.chat_model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.8,  # Higher for creativity
-                    'max_output_tokens': 200,
-                }
-            )
-            
-            return response.text.strip()
+            if self.provider == "groq":
+                # Use Groq API
+                response = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": personality + f"\n\nCURRENT MOOD: {mood}\n{mood_instruction}"
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""User's Budget Context:
+- Monthly Budget: ${budget:.2f}
+- Spent so far: ${total_spent:.2f}
+- Remaining: ${remaining:.2f}
+{city_info}
+
+User's question: "{message}"
+
+REMINDER: Maximum 2-3 sentences. Include your personality trait!"""
+                        }
+                    ],
+                    temperature=0.8,
+                    max_tokens=200,
+                )
+                return response.choices[0].message.content.strip()
+            else:
+                # Use Gemini API
+                response = self.chat_model.generate_content(
+                    prompt,
+                    generation_config={
+                        'temperature': 0.8,
+                        'max_output_tokens': 200,
+                    }
+                )
+                return response.text.strip()
             
         except Exception as e:
-            return f"Sorry, I'm having trouble thinking right now. Please try again! 😅"
+            # Personality-based error messages
+            error_messages = {
+                'penguin': "Oops, I slipped on some ice! 🐧 Let me try again!",
+                'dragon': "The mystical energies are disrupted... 🐉 Try again, brave one!",
+                'capybara': "Take it easy... I need a moment to chill. 🦫 Try again?",
+                'cat': "*hisses* Technical difficulties, meow! 🐱 Give me a sec!"
+            }
+            return error_messages.get(pet_type, "Sorry, I'm having trouble thinking right now. Please try again! 😅")
     
     def _get_personality_prompt(self, pet_type: str, friendship_level: int) -> str:
         """Get personality system prompt based on pet and friendship level"""
@@ -306,22 +452,30 @@ Be conversational, use the pet's personality, and give actionable advice when re
             'penguin': {
                 'name': 'Penny',
                 'emoji': '🐧',
-                'traits': 'friendly, warm, practical, encouraging'
+                'traits': 'upbeat and cheerful, loves making ice/water puns',
+                'style': 'Use phrases like "cool idea!", "let\'s break the ice", "stay chill", "ice to meet you", "making waves", "smooth sailing". Always upbeat and encouraging!',
+                'quirk': 'Ice and water puns in every response'
             },
             'dragon': {
                 'name': 'Esper',
                 'emoji': '🐉',
-                'traits': 'wise, enthusiastic, mystical, inspiring'
+                'traits': 'mystical treasure guardian, speaks in riddles and ancient wisdom',
+                'style': 'Use mystical phrases like "treasure your coins", "hoard wisely", "the ancient scrolls say", "guard your gold", "seek the gems of wisdom". Mystical and wise!',
+                'quirk': 'Speaks like a mystical guardian of wealth'
             },
             'capybara': {
                 'name': 'Capy',
                 'emoji': '🦫',
-                'traits': 'calm, thoughtful, relaxed, zen-like'
+                'traits': 'zen and chill, ultimate relaxed vibes',
+                'style': 'Use phrases like "no worries", "take it easy", "stay calm", "go with the flow", "chill out", "relax friend". Always peaceful and laid-back!',
+                'quirk': 'Radiates calm, zen energy'
             },
             'cat': {
                 'name': 'Mochi',
                 'emoji': '🐱',
-                'traits': 'playful, sweet, charming, sometimes sassy'
+                'traits': 'sassy with attitude, adds purrs to responses',
+                'style': 'Use phrases like "purr-fect", "meow", "*purrs*", "fur real", "paws and think". Sassy but adorable! Can be a little judgy but loving.',
+                'quirk': 'Adds purrs and cat sounds, sometimes sassy'
             }
         }
         
@@ -329,23 +483,29 @@ Be conversational, use the pet's personality, and give actionable advice when re
         
         # Adjust tone based on friendship level
         if friendship_level >= 7:
-            tone = "like a close friend - warm, personal, and supportive"
+            tone = "like a best friend - warm, personal, playful, and deeply supportive"
         elif friendship_level >= 4:
-            tone = "like a friendly companion - helpful and encouraging"
+            tone = "like a friendly companion - kind, encouraging, showing more personality"
         else:
-            tone = "like a helpful assistant - polite and informative"
+            tone = "like a new friend - helpful and polite, gradually showing personality"
         
-        return f"""You are {pet_info['name']} the {pet_type.title()} {pet_info['emoji']}, a budgeting assistant.
+        return f"""You are {pet_info['name']} {pet_info['emoji']}, an AI money advisor with personality!
 
-Your personality: {pet_info['traits']}
+CORE PERSONALITY: {pet_info['traits']}
+SPEECH STYLE: {pet_info['style']}
+UNIQUE TRAIT: {pet_info['quirk']}
+
 Friendship level: {friendship_level}/10
 Tone: Respond {tone}
 
-Keep responses:
-- Brief (under 100 words)
-- Cute and personality-appropriate
-- Actionable and helpful
-- Include relevant emoji occasionally"""
+CRITICAL RULES:
+- Maximum 2-3 sentences ONLY
+- Maximum 200 tokens total
+- NO long paragraphs
+- Brief, cute, and personality-rich
+- Always include at least one personality trait (pun/mystical phrase/zen word/purr)
+- Give actionable advice when money questions asked
+- Be helpful but stay in character"""
     
     async def generate_insights(self, user_context: Dict[str, Any]) -> List[str]:
         """

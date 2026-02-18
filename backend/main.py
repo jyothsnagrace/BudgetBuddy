@@ -280,7 +280,7 @@ async def parse_receipt(
     user_id: str = Depends(auth_manager.get_current_user)
 ):
     """
-    Parse receipt image using Gemini Vision
+    Parse receipt image using Groq + Tesseract OCR (primary) or Gemini Vision (fallback)
     Extracts structured expense data
     """
     try:
@@ -291,8 +291,18 @@ async def parse_receipt(
         # Read image
         image_data = await file.read()
         
-        # Parse receipt using Vision LLM
-        parsed_data = await receipt_parser.parse_receipt(image_data)
+        # Create fresh parser instance to avoid module caching issues
+        parser = ReceiptParser()
+        
+        print(f"\n[API] ReceiptParser initialized:")
+        print(f"  - Groq: {'✓' if parser.use_groq else '✗'}")
+        print(f"  - Tesseract: {'✓' if parser.use_tesseract else '✗'}")
+        print(f"  - Gemini Vision: {'✓' if parser.use_gemini else '✗'}")
+        
+        # Parse receipt using Groq + OCR (primary) or Gemini Vision (fallback)
+        parsed_data = await parser.parse_receipt(image_data)
+        
+        print(f"[API] Receipt parsed successfully: ${parsed_data.get('amount', 0):.2f}")
         
         return {
             "success": True,
@@ -300,6 +310,7 @@ async def parse_receipt(
             "message": "Receipt parsed successfully"
         }
     except Exception as e:
+        print(f"[API] Receipt parsing error: {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=422,
             detail=f"Failed to parse receipt: {str(e)}"
@@ -522,10 +533,12 @@ async def general_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_event():
     """Initialize connections on startup"""
+    global llm_pipeline
     print(">> BudgetBuddy API starting...")
     await db.connect()
     print(">> Database connected")
     print(">> LLM pipeline initialized")
+    print(f">> LLM Provider: {llm_pipeline.provider}")
     print(f">> Server ready on port {os.getenv('PORT', 8000)}")
 
 @app.on_event("shutdown")
