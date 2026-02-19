@@ -81,6 +81,11 @@ export default function App() {
     if (token && storedUsername) {
       setIsAuthenticated(true);
       setUsername(storedUsername);
+      
+      // Keep page at top on reload (same as after login)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }, 0);
     }
   }, []); // Run once on mount
 
@@ -89,6 +94,9 @@ export default function App() {
     if (isAuthenticated) {
       updateLastActivity();
       fetchExpenses();
+      
+      // Keep page at top when authenticated state changes
+      window.scrollTo({ top: 0, behavior: "auto" });
     }
   }, [isAuthenticated]);
 
@@ -242,6 +250,9 @@ export default function App() {
     setUsername(username);
     setIsAuthenticated(true);
     
+    // Force scroll to top immediately after login
+    window.scrollTo({ top: 0, behavior: "auto" });
+    
     // Fetch user profile to get selected_pet
     try {
       const response = await fetch(`${API_URL}/api/user/profile`, {
@@ -263,6 +274,11 @@ export default function App() {
     }
     
     // Expenses will be fetched by the useEffect that watches isAuthenticated
+    
+    // Ensure page stays at top after components mount
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }, 0);
   };
 
   const handleLogout = () => {

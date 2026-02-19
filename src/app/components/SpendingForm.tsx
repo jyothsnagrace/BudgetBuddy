@@ -50,8 +50,8 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   
-  // Tab control - Default to Quick Add
-  const [activeTab, setActiveTab] = useState('quick');
+  // Tab control - Default to Manual Entry
+  const [activeTab, setActiveTab] = useState('manual');
   
   // Refs for focus management
   const manualFormRef = useRef<HTMLDivElement>(null);
@@ -62,7 +62,7 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
     if (activeTab === 'manual' && manualFormRef.current) {
       const firstInput = manualFormRef.current.querySelector('input');
       if (firstInput) {
-        (firstInput as HTMLInputElement).focus();
+        (firstInput as HTMLInputElement).focus({ preventScroll: true });
       }
     }
   }, [activeTab]);
@@ -171,7 +171,7 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
         setTimeout(() => {
           if (manualFormRef.current) {
             const firstInput = manualFormRef.current.querySelector('input');
-            if (firstInput) (firstInput as HTMLInputElement).focus();
+            if (firstInput) (firstInput as HTMLInputElement).focus({ preventScroll: true });
           }
         }, 100);
       }

@@ -345,9 +345,10 @@ Return ONLY valid JSON, no other text."""
         Generate smart chatbot response
         City-aware, context-aware, personality-based, mood-aware
         """
-        # Get pet personality
+        # Get pet personality and user info
         pet_type = user_context.get('selected_pet', 'penguin')
         friendship_level = user_context.get('friendship_level', 1)
+        username = user_context.get('username', 'friend')
         
         personality = self._get_personality_prompt(pet_type, friendship_level)
         
@@ -382,6 +383,8 @@ Return ONLY valid JSON, no other text."""
 CURRENT MOOD: {mood}
 {mood_instruction}
 
+User's name: {username}
+
 User's Budget Context:
 - Monthly Budget: ${budget:.2f}
 - Spent so far: ${total_spent:.2f}
@@ -393,10 +396,11 @@ User's question: "{message}"
 
 Response requirements:
 1. Maximum 2-3 sentences
-2. Stay in character with your personality
-3. Include at least one personality trait (pun/mystical phrase/zen word/purr)
-4. Adjust tone to match the mood
-5. Be helpful and give actionable advice when relevant"""
+2. Address the user by name ({username}) naturally in your response
+3. Stay in character with your personality
+4. Include at least one personality trait (pun/mystical phrase/zen word/purr)
+5. Adjust tone to match the mood
+6. Be helpful and give actionable advice when relevant"""
         
         try:
             if self.provider == "groq":
@@ -406,7 +410,7 @@ Response requirements:
                     messages=[
                         {
                             "role": "system",
-                            "content": personality + f"\n\nCURRENT MOOD: {mood}\n{mood_instruction}"
+                            "content": personality + f"\n\nCURRENT MOOD: {mood}\n{mood_instruction}\n\nUser's name: {username}"
                         },
                         {
                             "role": "user",
@@ -418,7 +422,7 @@ Response requirements:
 
 User's question: "{message}"
 
-REMINDER: Maximum 2-3 sentences. Include your personality trait!"""
+REMINDER: Address the user by name ({username}). Maximum 2-3 sentences. Include your personality trait!"""
                         }
                     ],
                     temperature=0.8,

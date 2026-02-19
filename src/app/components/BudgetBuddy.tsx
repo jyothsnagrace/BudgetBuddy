@@ -5,7 +5,15 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { FriendshipStatus, updateLastActivity } from "./FriendshipStatus";
 import { API_URL } from "../../config";
 
@@ -37,6 +45,47 @@ interface BudgetBuddyProps {
   }>;
   categoryTotals: { [key: string]: number };
 }
+
+type CityRegion = "Northeast" | "Midwest" | "South" | "West";
+
+type CityOption = {
+  value: string;
+  label: string;
+  state: string;
+  region: CityRegion;
+};
+
+const CITY_OPTIONS: CityOption[] = [
+  { value: "Austin", label: "Austin, TX", state: "TX", region: "South" },
+  { value: "Atlanta", label: "Atlanta, GA", state: "GA", region: "South" },
+  { value: "Boston", label: "Boston, MA", state: "MA", region: "Northeast" },
+  { value: "Charlotte", label: "Charlotte, NC", state: "NC", region: "South" },
+  { value: "Chicago", label: "Chicago, IL", state: "IL", region: "Midwest" },
+  { value: "Columbus", label: "Columbus, OH", state: "OH", region: "Midwest" },
+  { value: "Dallas", label: "Dallas, TX", state: "TX", region: "South" },
+  { value: "Denver", label: "Denver, CO", state: "CO", region: "West" },
+  { value: "Detroit", label: "Detroit, MI", state: "MI", region: "Midwest" },
+  { value: "Fort Worth", label: "Fort Worth, TX", state: "TX", region: "South" },
+  { value: "Houston", label: "Houston, TX", state: "TX", region: "South" },
+  { value: "Indianapolis", label: "Indianapolis, IN", state: "IN", region: "Midwest" },
+  { value: "Jacksonville", label: "Jacksonville, FL", state: "FL", region: "South" },
+  { value: "Las Vegas", label: "Las Vegas, NV", state: "NV", region: "West" },
+  { value: "Los Angeles", label: "Los Angeles, CA", state: "CA", region: "West" },
+  { value: "Miami", label: "Miami, FL", state: "FL", region: "South" },
+  { value: "Nashville", label: "Nashville, TN", state: "TN", region: "South" },
+  { value: "New York", label: "New York, NY", state: "NY", region: "Northeast" },
+  { value: "Philadelphia", label: "Philadelphia, PA", state: "PA", region: "Northeast" },
+  { value: "Phoenix", label: "Phoenix, AZ", state: "AZ", region: "West" },
+  { value: "Portland", label: "Portland, OR", state: "OR", region: "West" },
+  { value: "San Antonio", label: "San Antonio, TX", state: "TX", region: "South" },
+  { value: "San Diego", label: "San Diego, CA", state: "CA", region: "West" },
+  { value: "San Francisco", label: "San Francisco, CA", state: "CA", region: "West" },
+  { value: "San Jose", label: "San Jose, CA", state: "CA", region: "West" },
+  { value: "Seattle", label: "Seattle, WA", state: "WA", region: "West" },
+  { value: "Washington", label: "Washington, DC", state: "DC", region: "Northeast" },
+];
+
+const REGION_ORDER: CityRegion[] = ["Northeast", "Midwest", "South", "West"];
 
 /* ================= ENHANCED BACKEND CHAT ================= */
 
@@ -87,11 +136,14 @@ export function BudgetBuddy({
   });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState(() => localStorage.getItem("selectedCity") || "");
+  const [cityFilter, setCityFilter] = useState("");
+  const [isCityOpen, setIsCityOpen] = useState(false);
   const [buddyMood, setBuddyMood] = useState<"happy" | "worried" | "excited">(
     "happy"
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chatCardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [petAnimation, setPetAnimation] = useState(0);
 
@@ -100,6 +152,10 @@ export function BudgetBuddy({
   useEffect(() => {
     localStorage.setItem('selectedPet', petType);
   }, [petType]);
+
+  useEffect(() => {
+    localStorage.setItem("selectedCity", city);
+  }, [city]);
 
   /* ===== Listen for Pet Changes ===== */
   
@@ -168,10 +224,30 @@ export function BudgetBuddy({
   useEffect(() => {
     // Only scroll if a new message was added (not when messages were reset)
     if (messages.length > prevMessageLengthRef.current) {
-      scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+      // First, ensure chat card is visible (minimal scroll if needed)
+      if (chatCardRef.current) {
+        const rect = chatCardRef.current.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+        
+        if (!isVisible) {
+          // Scroll chat card into view with minimal movement
+          chatCardRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+      
+      // Then scroll within the chat container to show the new message
+      setTimeout(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+      }, 100);
     }
     prevMessageLengthRef.current = messages.length;
   }, [messages]);
+
+  useEffect(() => {
+    if (!isCityOpen) {
+      setCityFilter("");
+    }
+  }, [isCityOpen]);
 
   /* ===== Send Message ===== */
 
@@ -218,8 +294,8 @@ export function BudgetBuddy({
         },
       ]);
     } finally {
-      // Focus back on input for quick follow-up questions
-      setTimeout(() => inputRef.current?.focus(), 100);
+      // Focus back on input for quick follow-up questions (without scrolling page)
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100);
     }
   };
 
@@ -282,6 +358,22 @@ export function BudgetBuddy({
     setPetAnimation((p) => p + 1);
   };
 
+  const normalizedCityFilter = cityFilter.trim().toLowerCase();
+  const filteredCities = normalizedCityFilter
+    ? CITY_OPTIONS.filter((option) =>
+        `${option.value} ${option.label} ${option.state}`
+          .toLowerCase()
+          .includes(normalizedCityFilter),
+      )
+    : CITY_OPTIONS;
+
+  const cityGroups = REGION_ORDER.map((region) => {
+    const cities = filteredCities
+      .filter((option) => option.region === region)
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return { region, cities };
+  }).filter((group) => group.cities.length > 0);
+
   /* ================= UI ================= */
 
   return (
@@ -329,7 +421,7 @@ export function BudgetBuddy({
 
       {/* Chat */}
 
-      <Card className={`border-2 ${petType === 'penguin' ? 'border-cyan-300' : petType === 'dragon' ? 'border-purple-300' : petType === 'cat' ? 'border-pink-300' : 'border-green-300'} bg-white/85 shadow-lg`}>
+      <Card ref={chatCardRef} className={`border-2 ${petType === 'penguin' ? 'border-cyan-300' : petType === 'dragon' ? 'border-purple-300' : petType === 'cat' ? 'border-pink-300' : 'border-green-300'} bg-white/85 shadow-lg`}>
         <CardHeader className="space-y-1 pb-3">
           <CardTitle className="text-xl font-bold">Ask Your AI Advisor</CardTitle>
           <p className="text-sm text-gray-600">
@@ -341,92 +433,99 @@ export function BudgetBuddy({
           {/* City Selector */}
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
-            <Select value={city} onValueChange={setCity}>
+            <Select value={city} onValueChange={setCity} onOpenChange={setIsCityOpen}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Select a city (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="New York">New York, NY</SelectItem>
-                <SelectItem value="Los Angeles">Los Angeles, CA</SelectItem>
-                <SelectItem value="Chicago">Chicago, IL</SelectItem>
-                <SelectItem value="Houston">Houston, TX</SelectItem>
-                <SelectItem value="Phoenix">Phoenix, AZ</SelectItem>
-                <SelectItem value="Philadelphia">Philadelphia, PA</SelectItem>
-                <SelectItem value="San Antonio">San Antonio, TX</SelectItem>
-                <SelectItem value="San Diego">San Diego, CA</SelectItem>
-                <SelectItem value="Dallas">Dallas, TX</SelectItem>
-                <SelectItem value="San Jose">San Jose, CA</SelectItem>
-                <SelectItem value="Austin">Austin, TX</SelectItem>
-                <SelectItem value="Jacksonville">Jacksonville, FL</SelectItem>
-                <SelectItem value="Fort Worth">Fort Worth, TX</SelectItem>
-                <SelectItem value="Columbus">Columbus, OH</SelectItem>
-                <SelectItem value="Charlotte">Charlotte, NC</SelectItem>
-                <SelectItem value="San Francisco">San Francisco, CA</SelectItem>
-                <SelectItem value="Indianapolis">Indianapolis, IN</SelectItem>
-                <SelectItem value="Seattle">Seattle, WA</SelectItem>
-                <SelectItem value="Denver">Denver, CO</SelectItem>
-                <SelectItem value="Boston">Boston, MA</SelectItem>
-                <SelectItem value="Washington">Washington, DC</SelectItem>
-                <SelectItem value="Nashville">Nashville, TN</SelectItem>
-                <SelectItem value="Portland">Portland, OR</SelectItem>
-                <SelectItem value="Las Vegas">Las Vegas, NV</SelectItem>
-                <SelectItem value="Detroit">Detroit, MI</SelectItem>
-                <SelectItem value="Miami">Miami, FL</SelectItem>
-                <SelectItem value="Atlanta">Atlanta, GA</SelectItem>
+                <div className="px-2 pt-2">
+                  <Input
+                    value={cityFilter}
+                    onChange={(event) => setCityFilter(event.target.value)}
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                    placeholder="Search cities..."
+                    className="h-8"
+                  />
+                </div>
+                {cityGroups.length === 0 ? (
+                  <div className="px-2 py-2 text-xs text-muted-foreground">
+                    No cities match your search.
+                  </div>
+                ) : (
+                  cityGroups.map((group) => (
+                    <SelectGroup key={group.region}>
+                      <SelectLabel>{group.region}</SelectLabel>
+                      {group.cities.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
 
           {/* Example Questions */}
-          <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-1.5 space-y-1">
+            <p className="text-sm font-normal text-purple-600 flex items-center gap-1 leading-tight">
+              <Sparkles className="h-3 w-3 text-black" />
               Try asking:
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-0.5 pl-4">
               <button
                 type="button"
                 onClick={() => {
                   setInput(`Is it smarter to buy or rent in ${city || 'Charlotte'}?`);
-                  setTimeout(() => inputRef.current?.focus(), 50);
+                  setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50);
                 }}
-                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+                className="flex items-start gap-2 text-[11px] text-gray-500 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1 rounded transition-colors leading-tight"
               >
-                <span className="text-base flex-shrink-0">🏠</span>
-                <span>"Is it smarter to buy or rent in {city || 'Charlotte'}?"</span>
+                <span className="text-[10px] flex-shrink-0">🏠</span>
+                <span className="text-[11px] text-gray-500 leading-tight">
+                  "Is it smarter to buy or rent in {city || 'Charlotte'}?"
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setInput(`Which are budget friendly restaurants in ${city || 'Charlotte'}?`);
-                  setTimeout(() => inputRef.current?.focus(), 50);
+                  setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50);
                 }}
-                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+                className="flex items-start gap-2 text-[11px] text-gray-500 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1 rounded transition-colors leading-tight"
               >
-                <span className="text-base flex-shrink-0">🍽️</span>
-                <span>"Which are budget friendly restaurants in {city || 'Charlotte'}?"</span>
+                <span className="text-[10px] flex-shrink-0">🍽️</span>
+                <span className="text-[11px] text-gray-500 leading-tight">
+                  "Which are budget friendly restaurants in {city || 'Charlotte'}?"
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setInput(`How does my spending compare to ${city || 'Charlotte'} average?`);
-                  setTimeout(() => inputRef.current?.focus(), 50);
+                  setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50);
                 }}
-                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+                className="flex items-start gap-2 text-[11px] text-gray-500 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1 rounded transition-colors leading-tight"
               >
-                <span className="text-base flex-shrink-0">📊</span>
-                <span>"How does my spending compare to {city || 'Charlotte'} average?"</span>
+                <span className="text-[10px] flex-shrink-0">📊</span>
+                <span className="text-[11px] text-gray-500 leading-tight">
+                  "How does my spending compare to {city || 'Charlotte'} average?"
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setInput(`What's the cost of living in ${city || 'Charlotte'}?`);
-                  setTimeout(() => inputRef.current?.focus(), 50);
+                  setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50);
                 }}
-                className="flex items-start gap-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1.5 rounded transition-colors"
+                className="flex items-start gap-2 text-[11px] text-gray-500 hover:text-purple-600 hover:bg-purple-50 w-full text-left p-1 rounded transition-colors leading-tight"
               >
-                <span className="text-base flex-shrink-0">🏠</span>
-                <span>"What's the cost of living in {city || 'Charlotte'}?"</span>
+                <span className="text-[10px] flex-shrink-0">🏠</span>
+                <span className="text-[11px] text-gray-500 leading-tight">
+                  "What's the cost of living in {city || 'Charlotte'}?"
+                </span>
               </button>
             </div>
           </div>
@@ -468,7 +567,6 @@ export function BudgetBuddy({
               onChange={(e) => setInput(e.target.value)}
               placeholder={city ? `Ask about ${city}...` : `Ask about Charlotte...`}
               className="flex-1"
-              autoFocus
             />
 
             <Button 
