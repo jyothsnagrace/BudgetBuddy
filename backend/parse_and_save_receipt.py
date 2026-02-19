@@ -11,7 +11,7 @@ from pathlib import Path
 from receipt_parser import ReceiptParser
 
 # Configuration
-RECEIPT_PATH = r"C:\Users\jyoth\Downloads\Project_0210\receipts\ChatGPT Image Feb 15, 2026, 03_16_56 AM.png"
+RECEIPT_PATH = r"C:\Users\jyoth\Downloads\Project_0210\BudgetBuddy\tests\fixtures\receipts\sample_receipt_2.png"
 API_BASE_URL = "http://localhost:8000"
 USERNAME = "admin"
 PASSWORD = "admin123"

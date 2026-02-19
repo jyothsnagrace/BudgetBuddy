@@ -21,7 +21,7 @@ from receipt_parser import ReceiptParser
 
 async def parse_and_save_receipt():
     """Parse receipt and save to database"""
-    receipt_path = r"C:\Users\jyoth\Downloads\Project_0210\receipts\ChatGPT Image Feb 15, 2026, 03_16_56 AM.png"
+    receipt_path = r"C:\Users\jyoth\Downloads\Project_0210\BudgetBuddy\tests\fixtures\receipts\sample_receipt_2.png"
     
     print("=" * 60)
     print("PARSE RECEIPT & SAVE TO DATABASE")

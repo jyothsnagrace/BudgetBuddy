@@ -5,7 +5,7 @@ import requests
 import os
 from pathlib import Path
 
-RECEIPT_PATH = r"C:\Users\jyoth\Downloads\Project_0210\receipts\ChatGPT Image Feb 15, 2026, 03_16_56 AM.png"
+RECEIPT_PATH = r"C:\Users\jyoth\Downloads\Project_0210\BudgetBuddy\tests\fixtures\receipts\sample_receipt_2.png"
 
 # Login first
 print("Step 1: Login...")

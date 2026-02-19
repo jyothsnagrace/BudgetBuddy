@@ -19,7 +19,7 @@ from receipt_parser import ReceiptParser
 
 async def test_specific_receipt():
     """Test with specific receipt image"""
-    receipt_path = r"C:\Users\jyoth\Downloads\Project_0210\receipts\ChatGPT Image Feb 15, 2026, 03_16_56 AM.png"
+    receipt_path = r"C:\Users\jyoth\Downloads\Project_0210\BudgetBuddy\tests\fixtures\receipts\sample_receipt_2.png"
     
     print("=" * 60)
     print("TESTING RECEIPT PARSER")

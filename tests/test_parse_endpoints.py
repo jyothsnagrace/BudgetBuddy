@@ -63,7 +63,7 @@ def test_parse_expense():
     print("Step 3: Parse Receipt Image")
     print("=" * 60)
     
-    receipt_path = r"C:\Users\jyoth\Downloads\Project_0210\receipts\ChatGPT Image Feb 15, 2026, 03_16_56 AM.png"
+    receipt_path = r"C:\Users\jyoth\Downloads\Project_0210\BudgetBuddy\tests\fixtures\receipts\sample_receipt_2.png"
     
     import os
     if not os.path.exists(receipt_path):
