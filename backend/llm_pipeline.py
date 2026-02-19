@@ -146,6 +146,9 @@ class LLMPipeline:
         print(f"[_extraction_stage] DEBUG: provider = '{self.provider}'")
         print(f"[_extraction_stage] DEBUG: has groq_client = {hasattr(self, 'groq_client')}")
         
+        current_year = date.today().year
+        today_date = date.today().isoformat()
+        
         prompt = f"""You are an expense extraction assistant. Extract expense information from the following text.
 
 Text: "{text}"
@@ -154,7 +157,15 @@ Extract and return ONLY a JSON object with these fields:
 - amount: The numeric amount (just the number, no currency symbols)
 - category: Best matching category (Food, Transportation, Entertainment, Shopping, Bills, Healthcare, Education, or Other)
 - description: Brief description of what was purchased
-- date: Date in YYYY-MM-DD format (use today's date if not specified: {date.today().isoformat()})
+- date: Date in YYYY-MM-DD format
+
+IMPORTANT DATE RULES:
+- If date includes year: use it as-is
+- If date has NO year (e.g., "Jan 10", "March 5"): assume current year {current_year}
+- If "today": use {today_date}
+- If "yesterday": use the day before today
+- If no date mentioned: use today's date {today_date}
+- Always return YYYY-MM-DD format
 
 Return ONLY valid JSON, no other text.
 
@@ -163,7 +174,7 @@ Example:
   "amount": 15.50,
   "category": "Food",
   "description": "Lunch at Chipotle",
-  "date": "2026-02-17"
+  "date": "{today_date}"
 }}
 
 Now extract from the given text:"""

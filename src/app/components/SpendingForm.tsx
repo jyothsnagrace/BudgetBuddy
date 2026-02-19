@@ -70,11 +70,16 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount && category) {
+      // Convert date to local YYYY-MM-DD format without timezone shift
+      const localDate = date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+        String(date.getDate()).padStart(2, '0');
+      
       onAddExpense({
         amount: parseFloat(amount),
         category,
         description,
-        date: date.toISOString()
+        date: localDate
       });
       
       // Reset form without scrolling
@@ -157,7 +162,11 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
         setAmount(parsed.amount.toString());
         setCategory(mapCategoryToEmoji(parsed.category));
         setDescription(parsed.description || '');
-        setDate(new Date(parsed.date));
+        
+        // Parse date without timezone issues
+        // parsed.date is already in YYYY-MM-DD format from backend
+        const [year, month, day] = parsed.date.split('-').map(Number);
+        setDate(new Date(year, month - 1, day));
         
         // Clear inputs
         setQuickText('');

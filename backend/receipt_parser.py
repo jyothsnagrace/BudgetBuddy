@@ -128,6 +128,9 @@ class ReceiptParser:
             print(f"OCR extracted {len(extracted_text)} characters")
             
             # Step 2: Parse text using Groq LLM
+            current_year = date.today().year
+            today_date = date.today().isoformat()
+            
             parse_prompt = f"""Parse this receipt text and extract structured expense information.
 
 Receipt Text:
@@ -142,19 +145,25 @@ Extract and return ONLY valid JSON in this exact format:
   "merchant": "<merchant_name>"
 }}
 
-Category selection (choose the best match):
-- Restaurant, grocery, cafe, food → "Food"
-- Gas station, uber, lyft, taxi, parking → "Transportation"
-- Movie, concert, games → "Entertainment"
-- Retail, clothing, electronics, amazon → "Shopping"
-- Utilities, phone, internet → "Bills"
-- Pharmacy, doctor, hospital → "Healthcare"
-- School, books, courses → "Education"
+CATEGORY RULES (REQUIRED - You MUST choose one):
+- Restaurant, grocery, cafe, food, dining → "Food"
+- Gas station, uber, lyft, taxi, parking, car → "Transportation"
+- Movie, concert, games, theater → "Entertainment"
+- Retail, clothing, electronics, amazon, store → "Shopping"
+- Utilities, phone, internet, rent → "Bills"
+- Pharmacy, doctor, hospital, medical → "Healthcare"
+- School, books, courses, tuition → "Education"
 - Everything else → "Other"
 
-Rules:
+IMPORTANT: Category field is REQUIRED. If unsure, use "Other".
+
+Other Rules:
 - Use the TOTAL amount (not subtotal)
-- If date not found, use today: {date.today().isoformat()}
+- Date handling:
+  * If receipt shows full date with year: use it
+  * If date has NO year (e.g., "01/10", "Jan 10"): assume current year {current_year}
+  * If no date found: use today {today_date}
+  * Always return in YYYY-MM-DD format
 - Return ONLY the JSON object, no explanation or markdown
 - Amount must be a number without $ or commas"""
 
@@ -205,35 +214,46 @@ Rules:
         elif image_data.startswith(b'RIFF') and image_data[8:12] == b'WEBP':
             mime_type = 'image/webp'
         
+        current_year = date.today().year
+        today_date = date.today().isoformat()
+        
         prompt = f"""Analyze this receipt image and extract structured expense data.
 
 Extract and return ONLY a JSON object with these exact fields:
 - amount: The TOTAL amount paid (number only, no $ symbol or commas)
-- category: Best matching category from [Food, Transportation, Entertainment, Shopping, Bills, Healthcare, Education, Other]
+- category: REQUIRED - Best matching category from [Food, Transportation, Entertainment, Shopping, Bills, Healthcare, Education, Other]
 - description: Brief description (merchant name + key items, max 100 chars)
-- date: Date in YYYY-MM-DD format (use today if not visible: {date.today().isoformat()})
+- date: Date in YYYY-MM-DD format
 - merchant: Store/restaurant name
 
-Category mapping:
-- Restaurant, grocery, cafe, food → "Food"
-- Gas station, uber, lyft, taxi, parking → "Transportation"
-- Movie, concert, games → "Entertainment"
-- Retail, clothing, electronics, amazon → "Shopping"
-- Utilities, phone, internet → "Bills"
-- Pharmacy, doctor, hospital → "Healthcare"
-- School, books, courses → "Education"
+IMPORTANT DATE RULES:
+- If receipt shows full date with year: use it
+- If date has NO year (e.g., "01/10", "Jan 10", "3/5"): assume current year {current_year}
+- If no date visible: use today {today_date}
+- Always return in YYYY-MM-DD format
+
+CATEGORY RULES (REQUIRED - You MUST choose one):
+- Restaurant, grocery, cafe, food, dining → "Food"
+- Gas station, uber, lyft, taxi, parking, car → "Transportation"
+- Movie, concert, games, theater → "Entertainment"
+- Retail, clothing, electronics, amazon, store → "Shopping"
+- Utilities, phone, internet, rent → "Bills"
+- Pharmacy, doctor, hospital, medical → "Healthcare"
+- School, books, courses, tuition → "Education"
 - Everything else → "Other"
+
+IMPORTANT: Category field is REQUIRED. If unsure, use "Other".
 
 Return ONLY valid JSON like this:
 {{
   "amount": 13.32,
   "category": "Food",
   "description": "The Breakfast Club - Chicken waffle meal",
-  "date": "2020-03-04",
+  "date": "{today_date}",
   "merchant": "The Breakfast Club"
 }}
 
-Be accurate with the total amount. Return ONLY the JSON object, no explanations."""
+Be accurate with the total amount and category. Return ONLY the JSON object, no explanations."""
 
         try:
             # Use Gemini with inline image data
@@ -269,8 +289,12 @@ Be accurate with the total amount. Return ONLY the JSON object, no explanations.
         if 'amount' not in data:
             raise ValueError("Amount not found in receipt")
         
-        if 'category' not in data:
-            data['category'] = 'Other'
+        # Handle category - try to infer if missing or empty
+        if 'category' not in data or not data.get('category') or data.get('category', '').strip() == '':
+            # Try to infer from merchant/description
+            inferred_category = self._infer_category(data)
+            data['category'] = inferred_category
+            print(f"[Receipt Parser] Category inferred as: {inferred_category}")
         
         if 'date' not in data:
             data['date'] = date.today().isoformat()
@@ -288,7 +312,9 @@ Be accurate with the total amount. Return ONLY the JSON object, no explanations.
         ]
         
         if data['category'] not in valid_categories:
-            data['category'] = 'Other'
+            # Try to infer again if invalid
+            data['category'] = self._infer_category(data)
+            print(f"[Receipt Parser] Invalid category, re-inferred as: {data['category']}")
         
         # Validate date format
         try:
@@ -298,6 +324,50 @@ Be accurate with the total amount. Return ONLY the JSON object, no explanations.
             data['date'] = date.today().isoformat()
         
         return data
+    
+    def _infer_category(self, data: Dict[str, Any]) -> str:
+        """Infer category from merchant name or description"""
+        text = (data.get('merchant', '') + ' ' + data.get('description', '')).lower()
+        
+        # Food-related keywords
+        if any(word in text for word in ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 
+                                          'food', 'grocery', 'market', 'deli', 'bakery',
+                                          'dining', 'lunch', 'dinner', 'breakfast', 'meal',
+                                          'chipotle', 'mcdonalds', 'starbucks', 'subway']):
+            return 'Food'
+        
+        # Transportation keywords
+        if any(word in text for word in ['gas', 'fuel', 'uber', 'lyft', 'taxi', 'parking',
+                                          'station', 'shell', 'chevron', 'exxon', 'bp']):
+            return 'Transportation'
+        
+        # Entertainment keywords
+        if any(word in text for word in ['movie', 'cinema', 'theater', 'concert', 'game',
+                                          'amc', 'netflix', 'spotify', 'entertainment']):
+            return 'Entertainment'
+        
+        # Shopping keywords
+        if any(word in text for word in ['store', 'shop', 'retail', 'walmart', 'target',
+                                          'amazon', 'clothing', 'electronics', 'mall']):
+            return 'Shopping'
+        
+        # Bills keywords
+        if any(word in text for word in ['utility', 'electric', 'water', 'internet', 'phone',
+                                          'cable', 'rent', 'insurance']):
+            return 'Bills'
+        
+        # Healthcare keywords
+        if any(word in text for word in ['pharmacy', 'medical', 'doctor', 'hospital', 'clinic',
+                                          'cvs', 'walgreens', 'health', 'medicine']):
+            return 'Healthcare'
+        
+        # Education keywords
+        if any(word in text for word in ['school', 'university', 'college', 'book', 'course',
+                                          'tuition', 'education', 'library']):
+            return 'Education'
+        
+        # Default to Other if no match
+        return 'Other'
     
     def _extract_json(self, text: str) -> str:
         """Extract JSON from LLM response"""
