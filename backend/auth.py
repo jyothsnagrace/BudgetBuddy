@@ -10,7 +10,8 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, Header
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+# Prefer JWT_SECRET_KEY, but support legacy JWT_SECRET for backward compatibility.
+SECRET_KEY = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET") or "your-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 

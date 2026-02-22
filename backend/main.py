@@ -31,10 +31,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# CORS origins can be provided as comma-separated list in CORS_ORIGINS,
+# or as a single URL in FRONTEND_URL for backward compatibility.
+cors_origins_env = os.getenv("CORS_ORIGINS")
+if cors_origins_env:
+    cors_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    frontend_url = os.getenv("FRONTEND_URL")
+    if frontend_url:
+        cors_origins = [frontend_url.strip()]
+    else:
+        cors_origins = [
+            "http://localhost:5173",
+            "http://localhost:5176",
+        ]
+
 # CORS Configuration (allows frontend to connect)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
