@@ -178,9 +178,8 @@ export default function App() {
       const backendCategory = frontendToBackendCategory(expenseData.category);
       console.log(`Adding expense: frontend category "${expenseData.category}" -> backend "${backendCategory}"`);
       
-      // Format date to YYYY-MM-DD for PostgreSQL
-      const dateObj = new Date(expenseData.date);
-      const formattedDate = dateObj.toISOString().split('T')[0];
+      // Already formatted as local YYYY-MM-DD by SpendingForm
+      const formattedDate = expenseData.date;
       
       const response = await fetch(`${API_URL}/api/expenses`, {
         method: "POST",

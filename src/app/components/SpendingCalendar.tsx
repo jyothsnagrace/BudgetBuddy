@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Calendar as CalendarIcon, DollarSign } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { parseLocalDate } from '../dateUtils';
 
 interface Expense {
   id: string;
@@ -18,10 +19,24 @@ interface SpendingCalendarProps {
 export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  const getDayHoverLabel = (day: Date, dayExpenses: Expense[], total: number) => {
+    const dateLabel = format(day, 'EEE, MMM d, yyyy');
+
+    if (dayExpenses.length === 0) {
+      return `${dateLabel}\nNo expenses`;
+    }
+
+    const expenseLines = dayExpenses
+      .map((expense) => `${expense.category} - $${expense.amount.toFixed(2)}`)
+      .join('\n');
+
+    return `${dateLabel}\nTotal: $${total.toFixed(2)}\n${expenseLines}`;
+  };
+
   // Get expenses grouped by day
   const getExpensesForDay = (date: Date) => {
     return expenses.filter(expense => 
-      isSameDay(new Date(expense.date), date)
+      isSameDay(parseLocalDate(expense.date), date)
     );
   };
 
@@ -131,10 +146,7 @@ export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
                   ${isToday ? 'ring-2 ring-blue-500 ring-offset-2' : 'border-gray-200'}
                   ${total === 0 ? 'bg-white hover:bg-gray-50' : ''}
                 `}
-                title={dayExpenses.length > 0 
-                  ? `${dayExpenses.length} expense${dayExpenses.length > 1 ? 's' : ''}: $${total.toFixed(2)}`
-                  : 'No expenses'
-                }
+                title={getDayHoverLabel(day, dayExpenses, total)}
               >
                 <span className={`text-xs sm:text-sm font-semibold ${isToday ? 'text-blue-700' : ''}`}>
                   {format(day, 'd')}
@@ -181,7 +193,7 @@ export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
             <span className="text-lg font-bold text-cyan-700">
               ${expenses
                 .filter(e => {
-                  const expenseDate = new Date(e.date);
+                  const expenseDate = parseLocalDate(e.date);
                   return expenseDate.getMonth() === currentDate.getMonth() &&
                          expenseDate.getFullYear() === currentDate.getFullYear();
                 })

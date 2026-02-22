@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
 import { format } from 'date-fns';
 import { cn } from './ui/utils';
+import { API_URL } from '../../config';
 
 interface SpendingFormProps {
   onAddExpense: (expense: {
@@ -31,8 +32,6 @@ const categories = [
   '📚 Education',
   '💰 Other'
 ];
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export function SpendingForm({ onAddExpense }: SpendingFormProps) {
   // Manual entry state
@@ -123,7 +122,7 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
         const formData = new FormData();
         formData.append('file', receiptImage);
         
-        const response = await fetch(`${API_BASE_URL}/api/parse-receipt`, {
+        const response = await fetch(`${API_URL}/api/parse-receipt`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -140,7 +139,7 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
       } 
       // Otherwise parse text
       else if (quickText.trim()) {
-        const response = await fetch(`${API_BASE_URL}/api/parse-expense`, {
+        const response = await fetch(`${API_URL}/api/parse-expense`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
