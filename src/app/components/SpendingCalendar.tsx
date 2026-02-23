@@ -30,6 +30,20 @@ export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
     return dayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   };
 
+  const getTooltipTextForDay = (date: Date, dayExpenses: Expense[], total: number) => {
+    const calendarLabel = format(date, 'EEE, MMM d, yyyy');
+
+    if (dayExpenses.length === 0) {
+      return `${calendarLabel}\nNo expenses`;
+    }
+
+    const expenseLines = dayExpenses.map(
+      (expense) => `Expense: $${expense.amount.toFixed(2)} | Category: ${expense.category}`
+    );
+
+    return `${calendarLabel}\n${expenseLines.join('\n')}\nTotal: $${total.toFixed(2)}`;
+  };
+
   // Generate calendar days
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -131,10 +145,7 @@ export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
                   ${isToday ? 'ring-2 ring-blue-500 ring-offset-2' : 'border-gray-200'}
                   ${total === 0 ? 'bg-white hover:bg-gray-50' : ''}
                 `}
-                title={dayExpenses.length > 0 
-                  ? `${dayExpenses.length} expense${dayExpenses.length > 1 ? 's' : ''}: $${total.toFixed(2)}`
-                  : 'No expenses'
-                }
+                title={getTooltipTextForDay(day, dayExpenses, total)}
               >
                 <span className={`text-xs sm:text-sm font-semibold ${isToday ? 'text-blue-700' : ''}`}>
                   {format(day, 'd')}
