@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
+import { parseExpenseDate } from '../dateUtils';
 
 interface Expense {
   id: string;
@@ -44,7 +45,7 @@ export function SpendingGraph({ expenses, budget, categoryTotals }: SpendingGrap
     const dailyMap: { [key: string]: number } = {};
     
     expenses.forEach(expense => {
-      const date = new Date(expense.date).toLocaleDateString('en-US', { 
+      const date = parseExpenseDate(expense.date).toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric' 
       });

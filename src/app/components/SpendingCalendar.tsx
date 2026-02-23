@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Calendar as CalendarIcon, DollarSign } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { parseExpenseDate } from '../dateUtils';
 
 interface Expense {
   id: string;
@@ -21,7 +22,7 @@ export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
   // Get expenses grouped by day
   const getExpensesForDay = (date: Date) => {
     return expenses.filter(expense => 
-      isSameDay(new Date(expense.date), date)
+      isSameDay(parseExpenseDate(expense.date), date)
     );
   };
 
@@ -192,7 +193,7 @@ export function SpendingCalendar({ expenses }: SpendingCalendarProps) {
             <span className="text-lg font-bold text-cyan-700">
               ${expenses
                 .filter(e => {
-                  const expenseDate = new Date(e.date);
+                  const expenseDate = parseExpenseDate(e.date);
                   return expenseDate.getMonth() === currentDate.getMonth() &&
                          expenseDate.getFullYear() === currentDate.getFullYear();
                 })

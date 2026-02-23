@@ -11,6 +11,7 @@ import { CompanionSelector } from "./components/CompanionSelector";
 import { Login } from "./components/Login";
 import { updateLastActivity } from "./components/FriendshipStatus";
 import { Button } from "./components/ui/button";
+import { toDateOnlyString } from "./dateUtils";
 import { API_URL } from "../config";
 import snowyBackground from "../assets/background-snowy.png";
 import dragonBackground from "../assets/background-dragon.png";
@@ -207,9 +208,8 @@ export default function App() {
       const backendCategory = frontendToBackendCategory(expenseData.category);
       console.log(`Adding expense: frontend category "${expenseData.category}" -> backend "${backendCategory}"`);
       
-      // Format date to YYYY-MM-DD for PostgreSQL
-      const dateObj = new Date(expenseData.date);
-      const formattedDate = dateObj.toISOString().split('T')[0];
+      // Format date to YYYY-MM-DD for PostgreSQL without timezone shifting
+      const formattedDate = toDateOnlyString(expenseData.date);
       
       const response = await fetch(`${API_URL}/api/expenses`, {
         method: "POST",
