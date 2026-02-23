@@ -51,6 +51,63 @@ class DatabaseClient:
     async def health_check(self) -> bool:
         """Check database connection"""
         return self._connected
+
+    # ============================================
+    # CACHE OPERATIONS
+    # ============================================
+
+    async def get_cached_value(self, cache_key: str) -> Optional[Any]:
+        """Get cached value if present and not expired"""
+        if not self._connected:
+            return None
+
+        try:
+            response = self.client.table('api_cache').select('*').eq('cache_key', cache_key).limit(1).execute()
+            if not response.data:
+                return None
+
+            row = response.data[0]
+            expires_at = row.get('expires_at')
+            if expires_at:
+                expires_dt = datetime.fromisoformat(str(expires_at).replace('Z', '+00:00'))
+                now_utc = datetime.now(expires_dt.tzinfo) if expires_dt.tzinfo else datetime.utcnow()
+                if expires_dt <= now_utc:
+                    self.client.table('api_cache').delete().eq('cache_key', cache_key).execute()
+                    return None
+
+            return row.get('cache_value')
+        except Exception as e:
+            print(f"Error reading cache [{cache_key}]: {e}")
+            return None
+
+    async def set_cached_value(self, cache_key: str, cache_value: Any, ttl_seconds: int = 300):
+        """Set cache value with TTL in seconds"""
+        if not self._connected:
+            return
+
+        try:
+            expires_at = (datetime.utcnow() + timedelta(seconds=ttl_seconds)).isoformat() + 'Z'
+            data = {
+                'cache_key': cache_key,
+                'cache_value': cache_value,
+                'expires_at': expires_at,
+            }
+            self.client.table('api_cache').upsert(data).execute()
+        except Exception as e:
+            print(f"Error writing cache [{cache_key}]: {e}")
+
+    async def invalidate_cache_prefix(self, prefix: str):
+        """Invalidate all cache keys that start with a prefix"""
+        if not self._connected:
+            return
+
+        try:
+            response = self.client.table('api_cache').select('cache_key').execute()
+            keys = [row['cache_key'] for row in response.data if row.get('cache_key', '').startswith(prefix)]
+            for key in keys:
+                self.client.table('api_cache').delete().eq('cache_key', key).execute()
+        except Exception as e:
+            print(f"Error invalidating cache prefix [{prefix}]: {e}")
     
     # ============================================
     # USER OPERATIONS
@@ -255,6 +312,11 @@ class DatabaseClient:
             
             # Upsert (insert or update)
             response = self.client.table('budgets').upsert(data).execute()
+
+            # Invalidate related cache entries
+            await self.invalidate_cache_prefix(f"budgets:{user_id}:")
+            await self.invalidate_cache_prefix(f"budget_comparison:{user_id}:")
+
             return response.data[0]
         except Exception as e:
             raise Exception(f"Failed to create budget: {e}")
@@ -265,6 +327,11 @@ class DatabaseClient:
             return []
         
         try:
+            cache_key = f"budgets:{user_id}:{month or 'all'}"
+            cached = await self.get_cached_value(cache_key)
+            if cached is not None:
+                return cached
+
             query = self.client.table('budgets').select('*').eq('user_id', user_id)
             
             if month:
@@ -272,6 +339,7 @@ class DatabaseClient:
                 query = query.eq('month', month_date)
             
             response = query.execute()
+            await self.set_cached_value(cache_key, response.data, ttl_seconds=300)
             return response.data
         except Exception as e:
             print(f"Error fetching budgets: {e}")
@@ -283,6 +351,11 @@ class DatabaseClient:
             return {}
         
         try:
+            cache_key = f"budget_comparison:{user_id}:{month or 'all'}:{category or 'all'}"
+            cached = await self.get_cached_value(cache_key)
+            if cached is not None:
+                return cached
+
             # Use the budget_comparison view
             query = self.client.table('budget_comparison').select('*').eq('user_id', user_id)
             
@@ -294,6 +367,7 @@ class DatabaseClient:
                 query = query.eq('category', category)
             
             response = query.execute()
+            await self.set_cached_value(cache_key, response.data, ttl_seconds=300)
             return response.data
         except Exception as e:
             print(f"Error fetching budget comparison: {e}")

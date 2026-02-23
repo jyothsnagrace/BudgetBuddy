@@ -94,6 +94,7 @@ export default function App() {
     if (isAuthenticated) {
       updateLastActivity();
       fetchExpenses();
+      fetchCurrentMonthBudget();
       
       // Keep page at top when authenticated state changes
       window.scrollTo({ top: 0, behavior: "auto" });
@@ -133,6 +134,34 @@ export default function App() {
       console.error("Failed to fetch expenses:", error);
     } finally {
       setIsLoadingExpenses(false);
+    }
+  };
+
+  const fetchCurrentMonthBudget = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const response = await fetch(`${API_URL}/api/budgets?month=${currentMonth}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const monthlyBudgets = data.budgets || [];
+      const totalBudget = monthlyBudgets.find((b: any) => b.category === null);
+      if (totalBudget?.monthly_limit) {
+        const parsedBudget = parseFloat(totalBudget.monthly_limit);
+        if (!isNaN(parsedBudget) && parsedBudget > 0) {
+          setBudget(parsedBudget);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch budgets:", error);
     }
   };
 
@@ -242,8 +271,34 @@ export default function App() {
     }
   };
 
-  const handleUpdateBudget = (newBudget: number) => {
-    setBudget(newBudget);
+  const handleUpdateBudget = async (newBudget: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const response = await fetch(`${API_URL}/api/budgets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          monthly_limit: newBudget,
+          category: null,
+          month: currentMonth,
+        }),
+      });
+
+      if (response.ok) {
+        setBudget(newBudget);
+      } else {
+        const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+        console.error("Failed to update budget:", errorData);
+      }
+    } catch (error) {
+      console.error("Error updating budget:", error);
+    }
   };
 
   const handleLogin = async (username: string, token: string, userId: string) => {
