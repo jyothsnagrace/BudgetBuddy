@@ -31,9 +31,11 @@ MANIFEST
 
 # Virtual Environment
 venv/
+venv312/
 ENV/
 env/
 backend/venv/
+backend/venv312/
 
 # Node
 node_modules/
