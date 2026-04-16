@@ -64,6 +64,77 @@ class DatabaseClient:
     async def health_check(self) -> bool:
         """Check database connection"""
         return self._connected
+
+    # ============================================
+    # API CACHE OPERATIONS
+    # ============================================
+
+    async def get_api_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Get cached JSON payload by key if not expired."""
+        if not self._connected:
+            return None
+
+        try:
+            response = (
+                self.client.table('api_cache')
+                .select('cache_value, expires_at')
+                .eq('cache_key', cache_key)
+                .limit(1)
+                .execute()
+            )
+
+            if not response.data:
+                return None
+
+            row = response.data[0]
+            expires_at = row.get('expires_at')
+            if expires_at:
+                expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                if expires_dt <= datetime.now(expires_dt.tzinfo):
+                    await self.delete_api_cache(cache_key)
+                    return None
+
+            return row.get('cache_value')
+        except Exception as e:
+            print(f"Error fetching api_cache: {e}")
+            return None
+
+    async def set_api_cache(self, cache_key: str, cache_value: Dict[str, Any], ttl_seconds: int = 86400):
+        """Insert or update cached JSON payload with TTL."""
+        if not self._connected:
+            return
+
+        try:
+            expires_at = (datetime.utcnow() + timedelta(seconds=ttl_seconds)).isoformat()
+            data = {
+                'cache_key': cache_key,
+                'cache_value': cache_value,
+                'expires_at': expires_at,
+            }
+
+            self.client.table('api_cache').upsert(data, on_conflict='cache_key').execute()
+        except Exception as e:
+            print(f"Error writing api_cache: {e}")
+
+    async def delete_api_cache(self, cache_key: str):
+        """Delete one cache record by key."""
+        if not self._connected:
+            return
+
+        try:
+            self.client.table('api_cache').delete().eq('cache_key', cache_key).execute()
+        except Exception as e:
+            print(f"Error deleting api_cache: {e}")
+
+    async def cleanup_expired_api_cache(self):
+        """Delete all expired cache records."""
+        if not self._connected:
+            return
+
+        try:
+            self.client.table('api_cache').delete().lt('expires_at', datetime.utcnow().isoformat()).execute()
+        except Exception as e:
+            print(f"Error cleaning expired api_cache: {e}")
     
     # ============================================
     # USER OPERATIONS
@@ -312,6 +383,77 @@ class DatabaseClient:
             print(f"Error fetching budget comparison: {e}")
             return {}
     
+    # ============================================
+    # MONTHLY BUDGET SUMMARY OPERATIONS
+    # ============================================
+
+    async def get_monthly_budget_summary(self, user_id: str, month: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get monthly_budget_summary row for a user/month. Returns None if not found."""
+        if not self._connected:
+            return None
+
+        try:
+            month_str = month or datetime.now().strftime('%Y-%m')
+            month_date = f"{month_str}-01"
+            response = (
+                self.client.table('monthly_budget_summary')
+                .select('*')
+                .eq('user_id', user_id)
+                .eq('month', month_date)
+                .execute()
+            )
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"Error fetching monthly_budget_summary: {e}")
+            return None
+
+    async def set_monthly_budget_limit(self, user_id: str, monthly_limit: float, month: Optional[str] = None) -> Dict[str, Any]:
+        """Upsert the monthly_limit for a user/month. total_spent is managed by DB triggers."""
+        if not self._connected:
+            return {
+                'user_id': user_id,
+                'month': (month or datetime.now().strftime('%Y-%m')) + '-01',
+                'monthly_limit': monthly_limit,
+                'total_spent': 0.0,
+            }
+
+        try:
+            month_str = month or datetime.now().strftime('%Y-%m')
+            month_date = f"{month_str}-01"
+
+            data = {
+                'user_id': user_id,
+                'month': month_date,
+                'monthly_limit': float(monthly_limit),
+            }
+
+            response = (
+                self.client.table('monthly_budget_summary')
+                .upsert(data, on_conflict='user_id,month')
+                .execute()
+            )
+            return response.data[0]
+        except Exception as e:
+            raise Exception(f"Failed to set monthly budget limit: {e}")
+
+    async def get_all_monthly_summaries(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all monthly summaries for a user, ordered newest first."""
+        if not self._connected:
+            return []
+
+        try:
+            response = (
+                self.client.table('monthly_budget_summary')
+                .select('*')
+                .eq('user_id', user_id)
+                .order('month', desc=True)
+                .execute()
+            )
+            return response.data
+        except Exception as e:
+            print(f"Error fetching all monthly summaries: {e}")
+            return []
+
     # ============================================
     # CALENDAR OPERATIONS
     # ============================================

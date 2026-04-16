@@ -60,11 +60,10 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const [username, setUsername] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const [budget, setBudget] = useState(() => {
-    const saved = localStorage.getItem("budget");
-    return saved ? parseFloat(saved) : 2000;
-  });
+  const [budget, setBudget] = useState(2000);
+  const [isBudgetLoaded, setIsBudgetLoaded] = useState(false);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
@@ -79,10 +78,12 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUsername = localStorage.getItem("username");
+    const storedUserId = localStorage.getItem("userId");
     
     if (token && storedUsername) {
       setIsAuthenticated(true);
       setUsername(storedUsername);
+      if (storedUserId) setUserId(storedUserId);
       
       // Keep page at top on reload (same as after login)
       setTimeout(() => {
@@ -103,14 +104,21 @@ export default function App() {
   }, [isAuthenticated]);
 
   const forceLogout = () => {
+    // Clear user-specific budget from localStorage
+    if (userId) {
+      localStorage.removeItem(`budget_${userId}`);
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     localStorage.removeItem("userId");
     localStorage.removeItem("selectedPet");
     setIsAuthenticated(false);
     setUsername("");
+    setUserId(null);
     setSelectedPet('penguin');
     setExpenses([]);
+    setBudget(2000);
+    setIsBudgetLoaded(false);
   };
 
   const fetchExpenses = async () => {
@@ -178,10 +186,107 @@ export default function App() {
     };
   }, [selectedPet]);
 
-  // Save to localStorage whenever data changes
+  // Load user-specific budget from localStorage when userId changes
   useEffect(() => {
-    localStorage.setItem("budget", budget.toString());
-  }, [budget]);
+    if (userId) {
+      const userBudgetKey = `budget_${userId}`;
+      const saved = localStorage.getItem(userBudgetKey);
+      if (saved) {
+        setBudget(parseFloat(saved));
+      }
+    }
+  }, [userId]);
+
+  // Load budget from database after auth/session is ready.
+  // This prevents overwriting DB budget with the default 2000 on login.
+  useEffect(() => {
+    const loadBudgetFromDatabase = async () => {
+      if (!isAuthenticated || !userId) return;
+
+      setIsBudgetLoaded(false);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsBudgetLoaded(true);
+        return;
+      }
+
+      try {
+        const now = new Date();
+        const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        const response = await fetch(`${API_URL}/api/budget-summary?month=${month}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const summary = data.summary;
+          if (summary && typeof summary.monthly_limit === "number") {
+            setBudget(summary.monthly_limit);
+            localStorage.setItem(`budget_${userId}`, summary.monthly_limit.toString());
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch budget from database:", error);
+      } finally {
+        setIsBudgetLoaded(true);
+      }
+    };
+
+    loadBudgetFromDatabase();
+  }, [isAuthenticated, userId]);
+
+  // Save to localStorage and database whenever budget changes
+  useEffect(() => {
+    // Save user-specific budget to localStorage
+    if (userId) {
+      localStorage.setItem(`budget_${userId}`, budget.toString());
+    }
+    
+    // Also save to database (monthly_budget_summary table) if authenticated
+    if (isAuthenticated && userId && isBudgetLoaded) {
+      const saveBudgetToDatabase = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        
+        try {
+          const now = new Date();
+          const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          
+          // POST to /api/budget-summary/limit  (budget and expenses stored separately)
+          const response = await fetch(`${API_URL}/api/budget-summary/limit`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              monthly_limit: budget,
+              month: month,
+            }),
+          });
+          
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("userId");
+            setIsAuthenticated(false);
+            return;
+          }
+          
+          if (!response.ok) {
+            console.error("Failed to save budget to database");
+          }
+        } catch (error) {
+          console.error("Error saving budget to database:", error);
+        }
+      };
+      
+      saveBudgetToDatabase();
+    }
+  }, [budget, isAuthenticated, userId, isBudgetLoaded]);
 
   // No longer saving expenses to localStorage - using backend instead
 
@@ -278,6 +383,14 @@ export default function App() {
 
   const handleLogin = async (username: string, token: string, userId: string) => {
     setUsername(username);
+    setUserId(userId);
+    setIsBudgetLoaded(false);
+    localStorage.setItem("userId", userId);
+    localStorage.setItem("token", token);
+    
+    // Clear old generic budget key (migrate to user-specific keys)
+    localStorage.removeItem("budget");
+    
     setIsAuthenticated(true);
     
     // Force scroll to top immediately after login

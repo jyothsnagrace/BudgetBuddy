@@ -72,8 +72,8 @@ app.add_middleware(
 llm_pipeline = LLMPipeline()
 function_system = FunctionCallingSystem()
 receipt_parser = ReceiptParser()
-col_api = CostOfLivingAPI()
 db = DatabaseClient()
+col_api = CostOfLivingAPI(db_client=db)
 auth_manager = AuthManager(db=db)  # Pass shared db instance
 
 # ============================================
@@ -130,6 +130,10 @@ class BudgetCreate(BaseModel):
     monthly_limit: float = Field(..., gt=0)
     category: Optional[str] = None
     month: Optional[str] = None  # YYYY-MM format
+
+class MonthlyBudgetLimitRequest(BaseModel):
+    monthly_limit: float = Field(..., gt=0)
+    month: Optional[str] = None  # YYYY-MM format, defaults to current month
 
 class UserProfileResponse(BaseModel):
     id: str
@@ -424,6 +428,57 @@ async def get_budget_comparison(
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
+# MONTHLY BUDGET SUMMARY (per user, per month)
+# Budget limit and total spent are tracked separately.
+# total_spent is auto-updated by DB triggers on the expenses table.
+# ============================================
+
+@app.get("/api/budget-summary")
+async def get_budget_summary(
+    user_id: str = Depends(auth_manager.get_current_user),
+    month: Optional[str] = None  # YYYY-MM, defaults to current month
+):
+    """Get budget limit + total_spent for a user/month from monthly_budget_summary."""
+    try:
+        summary = await db.get_monthly_budget_summary(user_id, month=month)
+        if summary is None:
+            # Return defaults when no row exists yet
+            from datetime import datetime as _dt
+            month_str = month or _dt.now().strftime('%Y-%m')
+            summary = {
+                "user_id": user_id,
+                "month": f"{month_str}-01",
+                "monthly_limit": 2000.0,
+                "total_spent": 0.0,
+            }
+        return {"summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/budget-summary/limit")
+async def set_budget_limit(
+    req: MonthlyBudgetLimitRequest,
+    user_id: str = Depends(auth_manager.get_current_user)
+):
+    """Set (upsert) the monthly budget limit for the current user."""
+    try:
+        result = await db.set_monthly_budget_limit(user_id, req.monthly_limit, month=req.month)
+        return {"success": True, "summary": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/budget-summary/all")
+async def get_all_budget_summaries(
+    user_id: str = Depends(auth_manager.get_current_user)
+):
+    """Get all monthly budget summaries for the user (all months)."""
+    try:
+        summaries = await db.get_all_monthly_summaries(user_id)
+        return {"summaries": summaries}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
 # CALENDAR
 # ============================================
 
@@ -485,6 +540,24 @@ async def chat_with_buddy(
                 "city": effective_city,
                 "col_data": col_data
             }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/chat/history")
+async def get_chat_history(
+    limit: int = 50,
+    user_id: str = Depends(auth_manager.get_current_user)
+):
+    """
+    Retrieve chat history for the current user
+    Returns the most recent messages (limited to 'limit' count)
+    """
+    try:
+        history = await db.get_chat_history(user_id, limit=limit)
+        return {
+            "history": history,
+            "count": len(history)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -626,6 +699,8 @@ async def startup_event():
     global llm_pipeline
     print(">> BudgetBuddy API starting...")
     await db.connect()
+    col_api.set_db_client(db)
+    await db.cleanup_expired_api_cache()
     print(">> Database connected")
     print(">> LLM pipeline initialized")
     print(f">> LLM Provider: {llm_pipeline.provider}")

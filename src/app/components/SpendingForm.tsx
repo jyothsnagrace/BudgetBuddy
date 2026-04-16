@@ -211,7 +211,7 @@ export function SpendingForm({ onAddExpense }: SpendingFormProps) {
   // Helper: Map backend category to emoji category
   const mapCategoryToEmoji = (category: string): string => {
     const mapping: Record<string, string> = {
-      'Food': '� Food',
+      'Food': '🍕 Food',
       'Transportation': '🚗 Transportation',
       'Entertainment': '🎮 Entertainment',
       'Shopping': '🛍️ Shopping',

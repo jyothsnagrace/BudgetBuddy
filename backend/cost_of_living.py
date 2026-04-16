@@ -75,11 +75,19 @@ FALLBACK_DATA = {
 class CostOfLivingAPI:
     """Cost of Living API client with caching and fallback"""
     
-    def __init__(self):
+    def __init__(self, db_client=None):
         self.api_key = RAPIDAPI_KEY
         self.cache = TTLCache(maxsize=100, ttl=86400)  # 24-hour cache
         self.rate_limit_reset = None
         self.fallback_mode = not bool(RAPIDAPI_KEY)
+        self.db_client = db_client
+
+    def set_db_client(self, db_client):
+        """Attach a database client for persistent API cache table usage."""
+        self.db_client = db_client
+
+    def _make_cache_key(self, city: str) -> str:
+        return f"cost_of_living:{city.strip().lower()}"
     
     def health_check(self) -> bool:
         """Check if API is available"""
@@ -97,11 +105,22 @@ class CostOfLivingAPI:
         Get cost of living data for a city
         With caching and fallback
         """
+        cache_key = self._make_cache_key(city)
+
         # Check cache first
         if city in self.cache:
-            data = self.cache[city]
+            data = dict(self.cache[city])
             data['cached'] = True
             return data
+
+        # Check persistent DB cache (api_cache table)
+        if self.db_client:
+            db_cached = await self.db_client.get_api_cache(cache_key)
+            if isinstance(db_cached, dict):
+                self.cache[city] = db_cached
+                data = dict(db_cached)
+                data['cached'] = True
+                return data
         
         # Check rate limiting
         if self._is_rate_limited():
@@ -114,13 +133,19 @@ class CostOfLivingAPI:
             else:
                 data = await self._fetch_from_api(city)
             
-            # Cache the result
-            self.cache[city] = data
+            # Cache in memory and persistent table
+            self.cache[city] = dict(data)
+            if self.db_client:
+                await self.db_client.set_api_cache(cache_key, dict(data), ttl_seconds=86400)
             return data
             
         except Exception as e:
             print(f"API error for {city}: {e}")
-            return self._get_fallback_data(city)
+            fallback = self._get_fallback_data(city)
+            self.cache[city] = dict(fallback)
+            if self.db_client:
+                await self.db_client.set_api_cache(cache_key, dict(fallback), ttl_seconds=3600)
+            return fallback
     
     async def _fetch_from_api(self, city: str) -> Dict[str, Any]:
         """Fetch data from RapidAPI"""
