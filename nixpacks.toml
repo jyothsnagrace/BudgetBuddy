@@ -3,8 +3,7 @@ nixPkgs = ["python312Full", "python312Packages.pip", "tesseract"]
 
 [phases.install]
 cmds = [
-  "pip3 install --upgrade pip",
-  "pip3 install -r requirements.txt"
+  "python3 -m pip install --disable-pip-version-check --prefer-binary -r requirements.txt"
 ]
 
 [start]
