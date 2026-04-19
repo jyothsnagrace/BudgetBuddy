@@ -74,40 +74,25 @@ backend/
 
 ```mermaid
 flowchart TD
-    User([User]) -->|Text / Receipt Image| Frontend[React Frontend\nVercel]
-    Frontend -->|REST API| Backend[FastAPI Backend\nRailway]
+    User([User]) -->|Text or Receipt Image| Frontend[React Frontend - Vercel]
+    Frontend -->|REST API| Backend[FastAPI Backend - Railway]
 
-    subgraph LLM_Pipeline [LLM Pipeline]
-        direction TB
-        Router{Input Type?}
-        NLP[Natural Language\nExpense Parser\nGroq LLaMA 3.1-8b]
-        OCR[Receipt OCR\nTesseract + Gemini Vision]
-        Norm[Normalization Model\nGroq LLaMA 3.1-8b]
-        FnCall[Function Calling\nExtract: amount, category,\ndate, merchant]
-    end
-
-    subgraph CafeAgent [Café Companion Multi-Agent]
-        direction TB
-        Orchestrator[Orchestrator Agent]
-        Advisor[Budget Advisor Agent]
-        CoL[Cost-of-Living Agent\nRapidAPI]
-        Memory[Conversation Memory\nJSON per user]
-        Orchestrator --> Advisor
-        Orchestrator --> CoL
-        Orchestrator <--> Memory
-    end
-
-    Backend --> Router
-    Router -->|Text input| NLP
-    Router -->|Image upload| OCR
-    NLP --> FnCall
-    OCR --> Norm
+    Backend --> Router{Input Type?}
+    Router -->|Text| NLP[NLP Parser - Groq LLaMA 3.1-8b]
+    Router -->|Image| OCR[Receipt OCR - Gemini Vision]
+    NLP --> FnCall[Function Calling - Extract Fields]
+    OCR --> Norm[Normalization - Groq LLaMA 3.1-8b]
     Norm --> FnCall
-    FnCall -->|Structured expense| DB[(Supabase\nPostgreSQL)]
-    Backend -->|Chat message| CafeAgent
-    CafeAgent -->|Advice + insights| Backend
-    DB -->|Expense history\nBudget summary| Backend
-    Backend -->|Parsed expense\nChat response\nAnalytics| Frontend
+    FnCall -->|Structured expense| DB[(Supabase PostgreSQL)]
+
+    Backend -->|Chat message| Orchestrator[Orchestrator Agent]
+    Orchestrator --> Advisor[Budget Advisor Agent]
+    Orchestrator --> CoL[Cost-of-Living Agent]
+    Orchestrator --> Memory[Conversation Memory]
+    Orchestrator -->|Response| Backend
+
+    DB -->|Expense history| Backend
+    Backend -->|Response| Frontend
 ```
 
 ### Stage Descriptions
