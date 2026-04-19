@@ -32,8 +32,8 @@ A full-stack personal budgeting application that combines **Large Language Model
 | Service | URL |
 |---------|-----|
 | 🌐 Frontend (Vercel) | https://budget-buddy-llm-app.vercel.app |
-| ⚙️ Backend (Railway) | https://budgetbuddyapp-production.up.railway.app |
-| 📖 API Docs | https://budgetbuddyapp-production.up.railway.app/docs |
+| ⚙️ Backend (Railway) | https://budgetbuddy-group3.up.railway.app |
+| 📖 API Docs | https://budgetbuddy-group3.up.railway.app/docs |
 
 ---
 
@@ -182,11 +182,6 @@ uvicorn main:app --reload --port 8000
 # 7. In a new terminal, start the frontend
 npm run dev
 ```
-
-**Access the app:**
-- 🌐 **Frontend**: http://localhost:5174
-- 📖 **API Docs**: http://localhost:8000/docs
-- ✅ **Health Check**: http://localhost:8000/
 
 ---
 

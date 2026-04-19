@@ -1,480 +1,315 @@
-# BudgetBuddy - Complete Setup Guide
+﻿# BudgetBuddy — Setup Guide
 
-## 🚀 Quick Start
+## Live Deployments
 
-This is a graduate-level LLM course project demonstrating:
-- ✅ Two-LLM Pipeline (Extraction + Normalization)
-- ✅ Function Calling with JSON Schema Validation
-- ✅ Multimodal Input (Receipt Vision Processing)
-- ✅ External API Integration (Cost of Living)
-- ✅ Persistent Storage (Supabase)
-- ✅ Clean Architecture (Python Backend + React Frontend)
+| Service | URL |
+|---|---|
+| Frontend (Vercel) | https://budget-buddy-llm-app.vercel.app |
+| Backend (Railway) | https://budgetbuddy-group3.up.railway.app |
+| API Docs | https://budgetbuddy-group3.up.railway.app/docs |
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### Required:
-- **Python 3.10+** ([Download](https://www.python.org/downloads/))
+- **Python 3.12+** ([Download](https://www.python.org/downloads/))
 - **Node.js 18+** ([Download](https://nodejs.org/))
 - **Git** ([Download](https://git-scm.com/))
 
-### Accounts (Free Tier):
-1. **Google AI Studio** - For Gemini API
-   - Go to https://makersuite.google.com/app/apikey
-   - Create API key (free tier: 60 requests/minute)
+### API Accounts (Free Tier):
 
-2. **Supabase** - For database
-   - Go to https://supabase.com
-   - Create new project
-   - Copy URL and anon key from Settings → API
+1. **Google AI Studio** — Gemini Vision (receipt parsing)
+   - https://aistudio.google.com/app/apikey
 
-3. **RapidAPI** (Optional) - For cost of living data
-   - Go to https://rapidapi.com
-   - Subscribe to free tier
-   - Will fallback to estimated data if not configured
+2. **Groq Cloud** — LLaMA 3.1 (chat & expense parsing)
+   - https://console.groq.com/keys
+
+3. **Supabase** — PostgreSQL database & auth
+   - https://supabase.com → New project → Settings → API
+
+4. **RapidAPI** *(optional)* — Cost of Living data
+   - https://rapidapi.com → App falls back to estimates if not configured
 
 ---
 
-## 🛠️ Installation
+## Local Setup
 
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/jyothsnagrace/BudgetBuddy.git
-cd BudgetBuddy
+git clone https://github.com/uncc-llm/Spring-2026-DSBA-6010-Group-3-Budget-Buddy.git
+cd Spring-2026-DSBA-6010-Group-3-Budget-Buddy
 ```
 
 ### Step 2: Database Setup
 
-1. Go to your Supabase project
-2. Open SQL Editor
-3. Run the schema file:
-
-```bash
-# Copy content from database/schema.sql
-# Paste in Supabase SQL Editor
-# Click "Run"
-```
+1. Open your Supabase project dashboard
+2. Navigate to **SQL Editor**
+3. Copy the contents of `database/schema.sql` and run it
 
 ### Step 3: Backend Setup
 
 ```bash
-# Navigate to backend directory
 cd backend
 
-# Create virtual environment
-python -m venv venv
+# Create and activate virtual environment
+python -m venv .venv
 
-# Activate virtual environment
 # Windows:
-venv\Scripts\activate
+.venv\Scripts\activate
 # Mac/Linux:
-source venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Copy environment template
-copy .env.example .env    # Windows
-cp .env.example .env      # Mac/Linux
-
-# Edit .env file with your credentials
 ```
 
-**Configure backend/.env:**
+Create `backend/.env`:
+
 ```env
-GEMINI_API_KEY=your_actual_gemini_api_key
+GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
-JWT_SECRET_KEY=generate-a-random-secure-string
+JWT_SECRET=generate-a-random-secure-string
 RAPIDAPI_KEY=your_rapidapi_key_or_leave_blank
+CORS_ORIGINS=http://localhost:5174,http://localhost:5173
 ```
 
 ### Step 4: Frontend Setup
 
 ```bash
-# Navigate to root directory
-cd ..
-
-# Install dependencies
+# From project root
 npm install
-
-# Copy environment template
-copy .env.example .env    # Windows
-cp .env.example .env      # Mac/Linux
-
-# Edit .env file
 ```
 
-**Configure .env:**
+Create `.env` in the project root:
+
 ```env
 VITE_API_URL=http://localhost:8000
-VITE_GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ---
 
-## ▶️ Running the Application
+## Running the Application
 
-### Terminal 1: Start Backend
+### Terminal 1 — Backend
 
 ```bash
 cd backend
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-python main.py
+uvicorn main:app --reload --port 8000
 ```
 
-Backend will run on: http://localhost:8000
+- API: http://localhost:8000
+- Interactive Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/
 
-**Test backend:**
-```bash
-curl http://localhost:8000/health
-```
-
-### Terminal 2: Start Frontend
+### Terminal 2 — Frontend
 
 ```bash
-# In root directory
+# From project root
 npm run dev
 ```
 
-Frontend will run on: http://localhost:5173
+- App: http://localhost:5174
 
 ---
 
-## 🧪 Testing Features
+## Testing Features
 
 ### 1. Authentication
-- Open http://localhost:5173
-- Enter any username (no password needed)
-- Click "Login"
+- Open the app in your browser
+- Register or log in with email/password (Supabase Auth)
 
-### 2. Quick Add (Natural Language)
-- Click "Quick Add" tab
-- Type: "Lunch at Chipotle $15"
-- Click "Parse & Fill"
-- Review parsed data in Manual tab
-- Click "Add Expense"
+### 2. Natural Language Expense Entry
+- Click **"Quick Add"** tab
+- Type: `"Lunch at Chipotle $15"`
+- Click **"Parse & Fill"** → review in Manual tab → **"Add Expense"**
 
-### 3. Receipt Photo
-- Click "Receipt" tab
-- Upload a receipt image
-- Click "Parse Receipt"
-- Review and submit
+### 3. Receipt Photo Parsing
+- Click **"Receipt"** tab
+- Upload a receipt image (JPG/PNG)
+- Click **"Parse Receipt"** → review and submit
 
 ### 4. Manual Entry
-- Click "Manual" tab (default focused)
-- Fill in form fields
-- Click "Add Expense"
+- Click **"Manual"** tab
+- Fill in the form fields → **"Add Expense"**
 
-### 5. Chatbot
-- Scroll to "Budget Buddy" section
-- Ask: "What's a budget restaurant in Seattle?"
-- Ask: "Should I buy or rent in Austin?"
+### 5. AI Chatbot (Cafe Companion)
+- Scroll to the companion section
+- Ask: `"What did I spend on food this week?"`
+- Ask: `"Set my dining budget to $200"`
+- Ask: `"How does the cost of living in Austin compare to Charlotte?"`
 
-### 6. Cost of Living
-- Ask chatbot about city comparisons
-- API will fetch real data or use fallback
+### 6. Budget Tracking
+- Navigate to **Budget Settings** to configure monthly limits
+- View **Budget Summary** for category breakdowns
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-BudgetBuddy/
-├── backend/                    # Python FastAPI Backend
-│   ├── main.py                # Main API application
-│   ├── llm_pipeline.py        # Two-LLM extraction & normalization
+Group-3-Budget-Buddy/
+├── backend/                    # FastAPI Python backend
+│   ├── main.py                # API entry point & routes
+│   ├── llm_pipeline.py        # Two-LLM extraction pipeline
 │   ├── function_calling.py    # Structured function calling
-│   ├── receipt_parser.py      # Vision-based receipt parsing
-│   ├── cost_of_living.py      # Cost of living API integration
+│   ├── cafe_agents.py         # Companion AI agent
+│   ├── receipt_parser.py      # Gemini Vision receipt OCR
+│   ├── cost_of_living.py      # RapidAPI cost-of-living integration
+│   ├── rag.py                 # Retrieval-Augmented Generation
 │   ├── database.py            # Supabase client
 │   ├── auth.py                # JWT authentication
-│   ├── requirements.txt       # Python dependencies
-│   └── .env.example           # Environment template
+│   └── requirements.txt       # Python dependencies
 │
 ├── database/
-│   └── schema.sql             # Supabase database schema
+│   └── schema.sql             # Supabase schema (run once)
 │
 ├── src/
-│   ├── app/
-│   │   ├── App.tsx           # Main React application
-│   │   └── components/
-│   │       ├── SpendingForm.tsx      # 3-method expense input
-│   │       ├── BudgetBuddy.tsx       # AI chatbot
-│   │       ├── SpendingCalendar.tsx  # Calendar view
-│   │       └── ...           # Other components
-│   └── ...
+│   └── app/
+│       ├── App.tsx            # Root React component
+│       └── components/        # UI components
 │
-├── ARCHITECTURE.md            # System architecture documentation
-├── SETUP.md                   # This file
+├── docs/
+│   └── SETUP.md               # This file
 ├── README.md                  # Project overview
 └── package.json               # Node dependencies
 ```
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
-### Issue: Backend won't start
+### Backend won't start
 
-**Error: `ModuleNotFoundError`**
+**`ModuleNotFoundError`**
 ```bash
-# Ensure virtual environment is activated
-source venv/bin/activate  # or venv\Scripts\activate
-
-# Reinstall dependencies
-pip install -r requirements.txt
+# Must run uvicorn from inside the backend/ directory
+cd backend
+uvicorn main:app --reload --port 8000
 ```
 
-**Error: `Supabase connection failed`**
-- Verify SUPABASE_URL and SUPABASE_KEY in .env
-- Check if Supabase project is active
-- Run schema.sql in Supabase SQL Editor
+**`Supabase connection failed`**
+- Verify `SUPABASE_URL` and `SUPABASE_KEY` in `backend/.env`
+- Confirm the Supabase project is active and schema has been applied
 
-### Issue: Frontend API calls fail
+### Frontend API calls fail
 
-**Error: `Network Error` or `CORS`**
-- Ensure backend is running on http://localhost:8000
-- Check VITE_API_URL in .env matches backend URL
-- Restart frontend: `Ctrl+C` then `npm run dev`
+**`Network Error` or CORS error**
+- Confirm backend is running on port 8000
+- Check `VITE_API_URL=http://localhost:8000` in root `.env`
+- Ensure `CORS_ORIGINS` in `backend/.env` includes your frontend port
 
-### Issue: LLM responses failing
+### LLM errors
 
-**Error: `Invalid API key`**
-- Verify GEMINI_API_KEY in backend/.env
-- Get new key from https://makersuite.google.com/app/apikey
-- Free tier has rate limits (60 requests/minute)
+**`Invalid API key`**
+- Check `GEMINI_API_KEY` and `GROQ_API_KEY` in `backend/.env`
+- Groq: https://console.groq.com/keys
+- Gemini: https://aistudio.google.com/app/apikey
 
-**Error: `Rate limit exceeded`**
-- Wait 1 minute
-- Consider upgrading Gemini API tier
-- Reduce frequency of requests
+**`Rate limit exceeded`**
+- Groq free tier: 30 req/min for LLaMA 3.1-8b
+- Gemini free tier: 15 req/min for Gemini 2.5 Flash
 
-### Issue: Receipt parsing not working
+### Receipt parsing not working
+- Image must be JPG or PNG, under 10 MB
+- Verify `GEMINI_API_KEY` is set and valid
 
-**Error: `Cannot find module`**
-- Install Pillow: `pip install pillow`
-- Ensure image is valid format (JPG, PNG)
-- Check file size (< 10MB recommended)
-
-### Issue: Cost of living data unavailable
-
-- This is expected if RAPIDAPI_KEY is not configured
-- App will use fallback data automatically
-- To fix: Add RAPIDAPI_KEY to backend/.env
+### Cost of living data unavailable
+- Expected if `RAPIDAPI_KEY` is not set — app uses fallback estimates automatically
 
 ---
 
-## 🌐 Deployment
+## Production Deployment
 
-### Backend Deployment (Railway)
+### Backend (Railway)
 
 1. Create account at https://railway.app
-2. Create new project → Deploy from GitHub
-3. Select your repository
+2. New project → **Deploy from GitHub** → select this repo
+3. Start command is configured via `railway.toml`: `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
 4. Add environment variables:
-   - GEMINI_API_KEY
-   - SUPABASE_URL
-   - SUPABASE_KEY
-   - JWT_SECRET_KEY
-   - RAPIDAPI_KEY (optional)
+   - `GEMINI_API_KEY`, `GROQ_API_KEY`
+   - `SUPABASE_URL`, `SUPABASE_KEY`
+   - `JWT_SECRET`, `RAPIDAPI_KEY`
+   - `CORS_ORIGINS=https://budget-buddy-llm-app.vercel.app`
 5. Deploy
 
-**Get backend URL:** `https://your-app.railway.app`
+**Live backend:** https://budgetbuddy-group3.up.railway.app
 
-### Frontend Deployment (Vercel)
+### Frontend (Vercel)
 
 1. Create account at https://vercel.com
-2. Import GitHub repository
-3. Configure build settings:
+2. **Import GitHub repository**
+3. Build settings:
    - Build Command: `npm run build`
    - Output Directory: `dist`
-4. Add environment variables:
-   - VITE_API_URL: `https://your-backend.railway.app`
-   - VITE_GEMINI_API_KEY: (your key)
+4. Add environment variable:
+   - `VITE_API_URL=https://budgetbuddy-group3.up.railway.app`
 5. Deploy
 
-### Update CORS
-
-After deploying, update backend CORS settings:
-
-```python
-# backend/main.py
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://your-frontend.vercel.app"
-    ],
-    ...
-)
-```
+**Live frontend:** https://budget-buddy-llm-app.vercel.app
 
 ---
 
-## 📊 API Documentation
+## API Reference
 
-Once backend is running, visit:
-- **Interactive API Docs:** http://localhost:8000/docs
-- **Health Check:** http://localhost:8000/health
+Interactive docs: https://budgetbuddy-group3.up.railway.app/docs
 
 ### Key Endpoints
 
 ```
-POST   /api/auth/login               # Login/create user
-POST   /api/expenses                 # Create expense
-GET    /api/expenses                 # Get expenses
-POST   /api/parse-expense            # Parse natural language
-POST   /api/parse-receipt            # Parse receipt photo
-POST   /api/chat                     # Chatbot
-GET    /api/cost-of-living/{city}   # Cost of living data
-POST   /api/function-call            # Execute function call
+POST   /auth/register              # Register new user
+POST   /auth/login                 # Login, returns JWT
+GET    /expenses                   # List expenses
+POST   /expenses                   # Create expense
+POST   /parse-expense              # Natural language → expense
+POST   /parse-receipt              # Receipt image → expense
+POST   /chat                       # Companion chatbot
+GET    /cost-of-living/{city}      # Cost of living data
 ```
 
 ---
 
-## 🎓 Course Project Features
+## Course Project Features
 
-### LLM Integration ✅
-- Two-stage pipeline (Extraction + Normalization)
-- Gemini 1.5 Flash for natural language processing
-- Context-aware chatbot responses
-
-### Prompt Engineering ✅
-- System prompts for personality
-- Few-shot examples in extraction
-- Context injection for personalization
-
-### Structured Outputs ✅
-- JSON Schema validation
-- Pydantic models for type safety
-- Schema-compliant parsing
-
-### Function Calling ✅
-- add_expense, set_budget, query_expenses
-- JSON Schema parameter validation
-- Automatic execution flow
-
-### Multimodal Input ✅
-- Receipt photo processing
-- Gemini Vision API integration
-- Image-to-structured data pipeline
-
-### Voice Input ⚠️
-- Can be added using Web Speech API
-- Browser-native speech recognition
-- Not implemented (optional enhancement)
-
-### Vision Extraction ✅
-- OCR using Gemini Vision
-- Receipt text extraction
-- Structured data parsing
-
-### External API Integration ✅
-- Cost of Living API (RapidAPI)
-- Caching layer
-- Graceful degradation
-
-### Persistent Storage ✅
-- Supabase PostgreSQL
-- User data, expenses, budgets
-- Calendar entries
-
-### Authentication ✅
-- Username-only login
-- JWT token management
-- Session persistence
-
-### Modular Architecture ✅
-- Clean separation (Frontend/Backend)
-- Service layer abstraction
-- Reusable components
-
-### Error Handling ✅
-- Try-catch at all API layers
-- Fallback mechanisms
-- User-friendly error messages
-
-### Deployment Ready ✅
-- Free-tier compatible
-- Environment-based configuration
-- Production deployment guide
+| Feature | Status |
+|---|---|
+| Two-LLM pipeline (Groq + Gemini) | Done |
+| Function calling with JSON Schema | Done |
+| Multimodal receipt parsing (Vision) | Done |
+| RAG-backed companion memory | Done |
+| Cost of Living API integration | Done |
+| Supabase persistent storage | Done |
+| JWT authentication | Done |
+| Vercel + Railway deployment | Done |
 
 ---
 
-## 📝 Additional Notes
+## Notes
 
 ### Free Tier Limits
 
-- **Gemini API:** 60 requests/minute
-- **Supabase:** 500MB storage, 2GB bandwidth
-- **RapidAPI:** 500 requests/month (optional)
+| Service | Limit |
+|---|---|
+| Groq (LLaMA 3.1-8b) | 30 req/min |
+| Gemini 2.5 Flash | 15 req/min |
+| Supabase | 500 MB storage, 2 GB bandwidth |
+| RapidAPI | 500 req/month (optional) |
 
-### Security Notes
+### Security
 
-⚠️ **This is a course project** - Username-only auth is intentionally simplified.
-
-For production:
-- Add proper password authentication
-- Implement refresh tokens
-- Add rate limiting
-- Enable HTTPS only
-- Sanitize all inputs
-
-### Performance Tips
-
-- LLM responses: 1-3 seconds
-- Receipt parsing: 2-5 seconds
-- Database queries: < 100ms
-- Cache cost-of-living data
+This is a course project. For production hardening:
+- Use hashed passwords + refresh tokens
+- Add rate limiting middleware
+- Enable HTTPS-only cookies
+- Rotate `JWT_SECRET` regularly
 
 ---
 
-## 🆘 Support
+## Support
 
-### Get Help:
-1. Check [Issues](https://github.com/jyothsnagrace/BudgetBuddy/issues)
-2. Review ARCHITECTURE.md
-3. Test backend at /docs endpoint
-4. Check browser console for errors
-
-### Common Questions:
-
-**Q: Do I need all API keys?**
-A: Only Gemini API is required. App will work with fallbacks for others.
-
-**Q: Can I use a different LLM?**
-A: Yes, modify llm_pipeline.py to use OpenAI, Anthropic, etc.
-
-**Q: How do I add more categories?**
-A: Update EXPENSE_SCHEMA in llm_pipeline.py and UI components.
-
-**Q: Can I deploy for free?**
-A: Yes! Railway, Vercel, and Supabase all have free tiers.
-
----
-
-## ✅ Project Validation Checklist
-
-- [x] LLM Integration (Gemini)
-- [x] Prompt Design (System prompts, context injection)
-- [x] Structured Outputs (JSON Schema validation)
-- [x] Function Calling (add_expense, set_budget, etc.)
-- [x] Multimodal Input (Receipt photos)
-- [ ] Voice Input (Optional - can add browser Speech API)
-- [x] Vision Extraction (Gemini Vision for receipts)
-- [x] External API (Cost of Living)
-- [x] Persistent Storage (Supabase)
-- [x] Authentication (Username + JWT)
-- [x] Modular Architecture (Clean separation)
-- [x] Error Handling (Try-catch, fallbacks)
-- [x] Deployment Feasibility (Free tier ready)
-
-**13/14 Core Requirements Met** ✅
-
----
-
-**Happy coding! 🚀**
-
-For questions: Open an issue on GitHub
+1. Check [Issues](https://github.com/uncc-llm/Spring-2026-DSBA-6010-Group-3-Budget-Buddy/issues)
+2. Test backend at https://budgetbuddy-group3.up.railway.app/docs
+3. Check browser console for frontend errors
