@@ -74,116 +74,43 @@ backend/
 ## 🧠 LLM Architecture & Flow
 
 ```mermaid
-flowchart TB
-  %% Input hub
-  UserInput((User Input))
-  Txt[Text expense entry]
-  Img[Receipt image upload]
-  Goal[Budget goals]
-  Chat[Chat questions]
-  Rem[Calendar reminders]
+flowchart TD
+    User((User))
+    Backend["FastAPI Backend\nRailway"]
+    Frontend["React Frontend\nVercel"]
 
-  Txt --> UserInput
-  Img --> UserInput
-  Goal --> UserInput
-  Chat --> UserInput
-  Rem --> UserInput
+    subgraph CAFE["Cafe Companion Multi-Agent"]
+        Orch[Orchestrator Agent]
+        BudAdv[Budget Advisor Agent]
+        COL["Cost-of-Living Agent\nRapidAPI"]
+        Mem["Conversation Memory\nJSON per user"]
+        Orch --> BudAdv
+        Orch --> COL
+        Orch --> Mem
+    end
 
-  %% Frontend layer
-  subgraph FE[Frontend Layer]
-    FEApp[React App UI]
-    FEViews[Budget Buddy + Pet Cafe + Calendar Views]
-  end
+    subgraph PIPELINE["LLM Pipeline"]
+        InputQ{Input Type?}
+        OCR["Receipt OCR\nTesseract + Gemini Vision"]
+        NLP["Expense Parser\nGroq LLaMA 3.1-8b"]
+        Norm[Normalization + Function Calling]
+        InputQ -- "Image upload" --> OCR
+        InputQ -- "Text input" --> NLP
+        OCR --> Norm
+        NLP --> Norm
+    end
 
-  %% Backend/API layer
-  subgraph API[Backend/API Layer]
-    APIGateway[FastAPI Route Gateway]
-    APIRouter{Input / Intent Router}
-    APIExpense[Expense & Budget Endpoints]
-    APICafe[Cafe Endpoints\nPOST/GET/DELETE]
-    APIAgent[Agent Execute Endpoint\nPOST /api/agent/execute]
-  end
+    DB[(Supabase PostgreSQL)]
 
-  %% LLM intelligence layer
-  subgraph LLM[LLM Intelligence Layer]
-    ParseLLM[Expense Parsing LLM]
-    VisionLLM[Receipt OCR + Vision LLM]
-    NormLLM[Normalization + Validation]
-    LLMFallback[Provider Fallback Chain\nOpenAI -> Anthropic -> Groq -> Mock]
-  end
-
-  %% Agent layer
-  subgraph AG[Agent Layer]
-    ExpenseAgent[Expense Parser Agent]
-    VisionAgent[Receipt/Vision Agent]
-    CafeAgents[Pet Cafe Companion Agents\nPenny, Esper, Capy, Mochi]
-    SafetyAgent[Reviewer/Safety Agent]
-  end
-
-  %% Tools and external APIs
-  subgraph TOOLS[Tools & External APIs]
-    FnTools[Function Calling Tools\nadd_expense, set_budget, query_expenses]
-    COLAPI[Cost-of-Living API]
-    RedditCtx[Reddit Topic Context]
-  end
-
-  %% Data and memory
-  subgraph DATA[Database/Memory Layer]
-    Supabase[(Supabase PostgreSQL)]
-    CafeMem[(Cafe Memory JSON per user)]
-    ChatMem[(Session/Agent Working Memory)]
-  end
-
-  %% Key feature highlights
-  subgraph H[Key Features]
-    H1[Multimodal Input: Text + Image]
-    H2[Turn-based Pet Community Cafe]
-    H3[Planner-Executor-Reviewer Orchestration]
-    H4[Memory Persistence + Context Grounding]
-  end
-
-  UserInput --> FEApp
-  FEApp --> FEViews
-  FEViews --> APIGateway
-
-  APIGateway --> APIRouter
-  APIRouter --> APIExpense
-  APIRouter --> APICafe
-  APIRouter --> APIAgent
-
-  APIExpense --> ExpenseAgent
-  APIExpense --> ParseLLM
-  ParseLLM --> NormLLM
-
-  APICafe --> CafeAgents
-  APICafe --> LLMFallback
-  APICafe --> RedditCtx
-
-  APIAgent --> ExpenseAgent
-  APIAgent --> VisionAgent
-  APIAgent --> SafetyAgent
-
-  VisionAgent --> VisionLLM
-  ExpenseAgent --> FnTools
-  VisionAgent --> FnTools
-  SafetyAgent --> FnTools
-
-  FnTools --> Supabase
-  COLAPI --> APIExpense
-  RedditCtx --> CafeAgents
-
-  CafeAgents --> CafeMem
-  APIAgent --> ChatMem
-  APIExpense --> Supabase
-
-  Supabase --> APIGateway
-  CafeMem --> APIGateway
-  ChatMem --> APIGateway
-
-  H1 -. highlights .-> UserInput
-  H2 -. highlights .-> APICafe
-  H3 -. highlights .-> APIAgent
-  H4 -. highlights .-> CafeMem
+    User -- "Text / Receipt Image" --> Backend
+    Backend --> Orch
+    Backend --> InputQ
+    Orch -- "Advice + insights\nChat message" --> Backend
+    Norm --> DB
+    DB -- "Expense history\nBudget summary" --> Backend
+    Frontend -- "REST API" --> Backend
+    Backend -- "Parsed expense\nChat response\nAnalytics" --> Frontend
+    Frontend --> User
 ```
 
 ### Stage Descriptions
