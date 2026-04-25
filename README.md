@@ -74,33 +74,116 @@ backend/
 ## 🧠 LLM Architecture & Flow
 
 ```mermaid
-flowchart TD
-    User([User]) -->|Text or Receipt Image| Frontend[React Frontend - Vercel]
-    Frontend -->|REST API| Backend[FastAPI Backend - Railway]
+flowchart TB
+  %% Input hub
+  UserInput((User Input))
+  Txt[Text expense entry]
+  Img[Receipt image upload]
+  Goal[Budget goals]
+  Chat[Chat questions]
+  Rem[Calendar reminders]
 
-    Backend --> Router{Input Type?}
-    Router -->|Text| NLP[NLP Parser - Groq LLaMA 3.1-8b]
-    Router -->|Image| OCR[Receipt OCR - Gemini Vision]
-    Router -->|Cafe Turn| CafeAPI["POST /api/cafe/gossip"]
-    NLP --> FnCall[Function Calling - Extract Fields]
-    OCR --> Norm[Normalization - Groq LLaMA 3.1-8b]
-    Norm --> FnCall
-    FnCall -->|Structured expense| DB[(Supabase PostgreSQL)]
+  Txt --> UserInput
+  Img --> UserInput
+  Goal --> UserInput
+  Chat --> UserInput
+  Rem --> UserInput
 
-    CafeAPI --> CafeContext["fetch_cafe_context<br/>Budget + Reddit topics"]
-    CafeAPI --> CafeEngine["run_cafe_continue_turn<br/>Speaker rotation + persona prompts"]
-    CafeEngine --> CafeLLM["Fallback chain: OpenAI → Anthropic → Groq → Mock"]
-    CafeEngine --> CafeMemory["backend/rag_cache<br/>Per-user cafe memory"]
-    CafeEngine -->|One new turn| Backend
+  %% Frontend layer
+  subgraph FE[Frontend Layer]
+    FEApp[React App UI]
+    FEViews[Budget Buddy + Pet Cafe + Calendar Views]
+  end
 
-    Backend -->|Complex task| AgentExec["POST /api/agent/execute"]
-    AgentExec --> Planner[Planner Agent]
-    Planner --> Executor[Executor Agent]
-    Executor --> Reviewer[Reviewer Agent]
-    Reviewer -->|Response| Backend
+  %% Backend/API layer
+  subgraph API[Backend/API Layer]
+    APIGateway[FastAPI Route Gateway]
+    APIRouter{Input / Intent Router}
+    APIExpense[Expense & Budget Endpoints]
+    APICafe[Cafe Endpoints\nPOST/GET/DELETE]
+    APIAgent[Agent Execute Endpoint\nPOST /api/agent/execute]
+  end
 
-    DB -->|Expense history| Backend
-    Backend -->|Response| Frontend
+  %% LLM intelligence layer
+  subgraph LLM[LLM Intelligence Layer]
+    ParseLLM[Expense Parsing LLM]
+    VisionLLM[Receipt OCR + Vision LLM]
+    NormLLM[Normalization + Validation]
+    LLMFallback[Provider Fallback Chain\nOpenAI -> Anthropic -> Groq -> Mock]
+  end
+
+  %% Agent layer
+  subgraph AG[Agent Layer]
+    ExpenseAgent[Expense Parser Agent]
+    VisionAgent[Receipt/Vision Agent]
+    CafeAgents[Pet Cafe Companion Agents\nPenny, Esper, Capy, Mochi]
+    SafetyAgent[Reviewer/Safety Agent]
+  end
+
+  %% Tools and external APIs
+  subgraph TOOLS[Tools & External APIs]
+    FnTools[Function Calling Tools\nadd_expense, set_budget, query_expenses]
+    COLAPI[Cost-of-Living API]
+    RedditCtx[Reddit Topic Context]
+  end
+
+  %% Data and memory
+  subgraph DATA[Database/Memory Layer]
+    Supabase[(Supabase PostgreSQL)]
+    CafeMem[(Cafe Memory JSON per user)]
+    ChatMem[(Session/Agent Working Memory)]
+  end
+
+  %% Key feature highlights
+  subgraph H[Key Features]
+    H1[Multimodal Input: Text + Image]
+    H2[Turn-based Pet Community Cafe]
+    H3[Planner-Executor-Reviewer Orchestration]
+    H4[Memory Persistence + Context Grounding]
+  end
+
+  UserInput --> FEApp
+  FEApp --> FEViews
+  FEViews --> APIGateway
+
+  APIGateway --> APIRouter
+  APIRouter --> APIExpense
+  APIRouter --> APICafe
+  APIRouter --> APIAgent
+
+  APIExpense --> ExpenseAgent
+  APIExpense --> ParseLLM
+  ParseLLM --> NormLLM
+
+  APICafe --> CafeAgents
+  APICafe --> LLMFallback
+  APICafe --> RedditCtx
+
+  APIAgent --> ExpenseAgent
+  APIAgent --> VisionAgent
+  APIAgent --> SafetyAgent
+
+  VisionAgent --> VisionLLM
+  ExpenseAgent --> FnTools
+  VisionAgent --> FnTools
+  SafetyAgent --> FnTools
+
+  FnTools --> Supabase
+  COLAPI --> APIExpense
+  RedditCtx --> CafeAgents
+
+  CafeAgents --> CafeMem
+  APIAgent --> ChatMem
+  APIExpense --> Supabase
+
+  Supabase --> APIGateway
+  CafeMem --> APIGateway
+  ChatMem --> APIGateway
+
+  H1 -. highlights .-> UserInput
+  H2 -. highlights .-> APICafe
+  H3 -. highlights .-> APIAgent
+  H4 -. highlights .-> CafeMem
 ```
 
 ### Stage Descriptions
