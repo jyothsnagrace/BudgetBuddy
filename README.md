@@ -75,42 +75,65 @@ backend/
 
 ```mermaid
 flowchart TD
-    User((User))
-    Backend["FastAPI Backend\nRailway"]
-    Frontend["React Frontend\nVercel"]
+  U[User] --> FE_Node
 
-    subgraph CAFE["Cafe Companion Multi-Agent"]
-        Orch[Orchestrator Agent]
-        BudAdv[Budget Advisor Agent]
-        COL["Cost-of-Living Agent\nRapidAPI"]
-        Mem["Conversation Memory\nJSON per user"]
-        Orch --> BudAdv
-        Orch --> COL
-        Orch --> Mem
-    end
+  subgraph SG_FE[Frontend - Implemented]
+    FE_Node[React + TypeScript UI]
+    FE1[Expense Entry]
+    FE2[Receipt Upload]
+    FE3[Pet Community Cafe]
+    FE4[Budget Dashboard]
+  end
 
-    subgraph PIPELINE["LLM Pipeline"]
-        InputQ{Input Type?}
-        OCR["Receipt OCR\nTesseract + Gemini Vision"]
-        NLP["Expense Parser\nGroq LLaMA 3.1-8b"]
-        Norm[Normalization + Function Calling]
-        InputQ -- "Image upload" --> OCR
-        InputQ -- "Text input" --> NLP
-        OCR --> Norm
-        NLP --> Norm
-    end
+  FE_Node --> API_Node
 
-    DB[(Supabase PostgreSQL)]
+  subgraph SG_API[Backend API - Implemented]
+    API_Node[FastAPI Service]
+    AP1[Auth + User Profile]
+    AP2[Expenses + Budgets + Calendar]
+    AP3[Cafe Endpoints]
+    AP4[Agent Execute Endpoint]
+  end
 
-    User -- "Text / Receipt Image" --> Backend
-    Backend --> Orch
-    Backend --> InputQ
-    Orch -- "Advice + insights\nChat message" --> Backend
-    Norm --> DB
-    DB -- "Expense history\nBudget summary" --> Backend
-    Frontend -- "REST API" --> Backend
-    Backend -- "Parsed expense\nChat response\nAnalytics" --> Frontend
-    Frontend --> User
+  API_Node --> AIL_Node
+  API_Node --> DB_Node
+
+  subgraph SG_AIL[LLM and Agent Layer]
+    AIL_Node[Model Routing + Orchestration]
+    A1[Expense Parsing Pipeline - Implemented]
+    A2[Receipt OCR + Vision - Implemented]
+    A3[Cafe Multi-Agent Turn Engine - Implemented]
+    A4[Planner -> Executor -> Reviewer - Implemented]
+    A5[RAG Retrieval Path - Optional]
+    A6[Provider Fallback Chain - Optional]
+  end
+
+  subgraph SG_DB[Data Layer - Implemented]
+    DB_Node[Persistence Layer]
+    D1[(Supabase PostgreSQL)]
+    D2[(Cafe Memory Cache)]
+  end
+
+  AIL_Node --> EXT_Node
+
+  subgraph SG_EXT[External Services]
+    EXT_Node[Provider Integrations]
+    E1[Groq - Implemented]
+    E2[Gemini - Implemented]
+    E3[RapidAPI Cost of Living - Implemented]
+    E4[OpenAI - Optional]
+    E5[Anthropic - Optional]
+    E6[Reddit Context Fetch - Optional]
+  end
+
+  API_Node -. planned .-> PLAN_Node
+
+  subgraph SG_PLAN[Planned Components]
+    PLAN_Node[Roadmap]
+    P1[Calendar Integration Enhancements]
+    P2[Email and Push Notifications]
+    P3[Statement Import Pipeline]
+  end
 ```
 
 ### Stage Descriptions
@@ -143,7 +166,7 @@ flowchart TD
 | **Cost Data** | RapidAPI | Real-time city cost-of-living |
 | **Auth** | JWT + Supabase | Secure user sessions |
 | **Deploy Frontend** | Vercel | Auto-deploy from `main` branch |
-| **Deploy Backend** | Railway + Railpack (default) | Auto-deploy from `backend` branch |
+| **Deploy Backend** | Railway + Railpack (default) | Auto-deploy from `\backend` |
 
 ---
 
