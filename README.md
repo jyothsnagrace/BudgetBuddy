@@ -150,41 +150,6 @@ uvicorn main:app --reload --port 8000
 npm run dev
 ```
 
----
-
-## 🔧 Environment Variables
-
-Create `backend/.env`:
-
-```env
-# LLM
-GEMINI_API_KEY=your_gemini_key
-GROQ_API_KEY=your_groq_key
-GROQ_MODEL=llama-3.1-8b-instant
-LLM_PROVIDER=groq
-
-# Database
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_KEY=your_supabase_anon_key
-
-# External APIs
-RAPIDAPI_KEY=your_rapidapi_key
-
-# Auth
-JWT_SECRET_KEY=your_jwt_secret
-
-# CORS
-FRONTEND_URL=https://budget-buddy-llm-app.vercel.app
-CORS_ORIGINS=https://budget-buddy-llm-app.vercel.app,http://localhost:5173,http://localhost:5174
-
-# Server
-HOST=0.0.0.0
-PORT=8000
-DEBUG=True
-```
-
----
-
 ## 💡 Usage
 
 ### 1. Add an Expense — Natural Language
@@ -301,9 +266,6 @@ BudgetBuddy/
 | [docs/SETUP.md](docs/SETUP.md) | Full installation & troubleshooting guide |
 | [docs/BudgetBuddy_Final_Report_Draft.docx](docs/BudgetBuddy_Final_Report_Draft.docx) | 4–5 page white-paper style report draft in Microsoft Word format |
 | [database/schema.sql](database/schema.sql) | PostgreSQL schema with RLS policies |
-
-ACM template reference: https://www.acm.org/publications/authors/submissions
-
 ---
 
 ## 🙏 Acknowledgments
