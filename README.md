@@ -74,7 +74,7 @@ backend/
 ## 🧠 LLM Architecture & Flow
 
 ![LLM Architecture and Flow](docs/LLM-Architecture-Work%20Flow.png)
-
+---
 ### Stage Descriptions
 
 | Stage | Model / Tool | Purpose |
