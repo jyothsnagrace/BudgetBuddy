@@ -81,23 +81,23 @@ flowchart TD
     Backend --> Router{Input Type?}
     Router -->|Text| NLP[NLP Parser - Groq LLaMA 3.1-8b]
     Router -->|Image| OCR[Receipt OCR - Gemini Vision]
-  Router -->|Cafe Turn| CafeAPI[/api/cafe/gossip]
+    Router -->|Cafe Turn| CafeAPI["POST /api/cafe/gossip"]
     NLP --> FnCall[Function Calling - Extract Fields]
     OCR --> Norm[Normalization - Groq LLaMA 3.1-8b]
     Norm --> FnCall
     FnCall -->|Structured expense| DB[(Supabase PostgreSQL)]
 
-  CafeAPI --> CafeContext[fetch_cafe_context\nBudget + Reddit topics]
-  CafeAPI --> CafeEngine[run_cafe_continue_turn\nSpeaker rotation + persona prompts]
-  CafeEngine --> CafeLLM[OpenAI -> Anthropic -> Groq -> Mock fallback]
-  CafeEngine --> CafeMemory[(backend/rag_cache\nper-user cafe memory)]
-  CafeEngine -->|One new turn| Backend
+    CafeAPI --> CafeContext["fetch_cafe_context<br/>Budget + Reddit topics"]
+    CafeAPI --> CafeEngine["run_cafe_continue_turn<br/>Speaker rotation + persona prompts"]
+    CafeEngine --> CafeLLM["Fallback chain: OpenAI → Anthropic → Groq → Mock"]
+    CafeEngine --> CafeMemory["backend/rag_cache<br/>Per-user cafe memory"]
+    CafeEngine -->|One new turn| Backend
 
-  Backend -->|Complex task| AgentExec[/api/agent/execute]
-  AgentExec --> Planner[Planner Agent]
-  Planner --> Executor[Executor Agent]
-  Executor --> Reviewer[Reviewer Agent]
-  Reviewer -->|Response| Backend
+    Backend -->|Complex task| AgentExec["POST /api/agent/execute"]
+    AgentExec --> Planner[Planner Agent]
+    Planner --> Executor[Executor Agent]
+    Executor --> Reviewer[Reviewer Agent]
+    Reviewer -->|Response| Backend
 
     DB -->|Expense history| Backend
     Backend -->|Response| Frontend
