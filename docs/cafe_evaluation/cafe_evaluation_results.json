@@ -1,0 +1,83 @@
+{
+  "overall_score": 0.94991875,
+  "ab_test": {
+    "system_metrics": {
+      "accuracy": 1.0,
+      "relevance": 1.0,
+      "coherence": 0.95,
+      "faithfulness": 0.8571
+    },
+    "baseline_metrics": {
+      "accuracy": 1.0,
+      "relevance": 0.6,
+      "coherence": 1.0,
+      "faithfulness": 1.0
+    },
+    "delta": {
+      "accuracy": 0.0,
+      "relevance": 0.4,
+      "coherence": -0.05,
+      "faithfulness": -0.1429
+    },
+    "winner": "system",
+    "turns": 6
+  },
+  "scenarios": [
+    {
+      "name": "happy_path",
+      "description": "Standard multi-turn cafe flow.",
+      "metrics": {
+        "accuracy": 1.0,
+        "relevance": 1.0,
+        "coherence": 0.95,
+        "faithfulness": 0.8571
+      },
+      "messages": 6,
+      "failure_modes": [],
+      "status": "passed"
+    },
+    {
+      "name": "corrupted_memory_recovery",
+      "description": "Start from malformed-memory-like minimal state.",
+      "metrics": {
+        "accuracy": 1.0,
+        "relevance": 1.0,
+        "coherence": 1.0,
+        "faithfulness": 0.8333
+      },
+      "messages": 5,
+      "failure_modes": [],
+      "status": "passed"
+    },
+    {
+      "name": "long_nested_context",
+      "description": "Stress with nested speaker-like prefixes in prior content.",
+      "metrics": {
+        "accuracy": 1.0,
+        "relevance": 1.0,
+        "coherence": 1.0,
+        "faithfulness": 0.8333
+      },
+      "messages": 5,
+      "failure_modes": [],
+      "status": "passed"
+    },
+    {
+      "name": "no_api_key_mode",
+      "description": "Validation when live LLM is not configured.",
+      "metrics": {
+        "accuracy": 1.0,
+        "relevance": 1.0,
+        "coherence": 0.925,
+        "faithfulness": 0.8
+      },
+      "messages": 4,
+      "failure_modes": [],
+      "status": "passed"
+    }
+  ],
+  "external_tools": {
+    "trulens": false,
+    "ragas": false
+  }
+}

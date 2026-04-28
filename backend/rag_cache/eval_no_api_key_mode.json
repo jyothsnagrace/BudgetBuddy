@@ -1,43 +1,69 @@
 [
   {
-    "id": "1774982381.790312-0",
+    "id": "1777345714.07809-0",
     "speaker": "barista_planner",
-    "content": "Cafe open. Ledger synced — one focused topic at a time.",
-    "timestamp": "2026-03-31T18:39:41.790312+00:00",
+    "content": "Cafe open. Today's topic: Budget status: saved — Successfully increased savings this week. Let's keep it focused — one insight at a time.",
+    "timestamp": "2026-04-28T03:08:34.078090+00:00",
     "meta": {
-      "tool": "fetch_budget_data",
-      "tool_output": "{\"user_id\": \"eval_no_api_key_mode\", \"generated_at\": \"2026-03-31T18:39:41.790312+00:00\", \"status\": \"saved\", \"summary\": \"Successfully increased savings this week.\", \"recent_spending\": [{\"category\": \"Dining\", \"amount\": 16.4, \"trend\": \"down\"}, {\"category\": \"Coffee\", \"amount\": 8.0, \"trend\": \"down\"}, {\"category\": \"Groceries\", \"amount\": 52.1, \"trend\": \"steady\"}], \"savings_change\": 42.7}",
+      "tool": "fetch_cafe_context",
+      "context_summary": "Budget status: saved — Successfully increased savings this week. Savings change: +42.7. Top Reddit posts: r/coffee post \"[MOD] The Daily Question Thread\" (6 upvotes); r/coffee post \"[MOD] The Official Deal Thread\" (2 upvotes).",
+      "reddit_posts": [
+        {
+          "subreddit": "coffee",
+          "title": "[MOD] The Daily Question Thread",
+          "score": 6,
+          "url": "https://www.reddit.com/r/Coffee/comments/1swz7o8/mod_the_daily_question_thread/",
+          "num_comments": 13
+        },
+        {
+          "subreddit": "coffee",
+          "title": "[MOD] The Official Deal Thread",
+          "score": 2,
+          "url": "https://www.reddit.com/r/Coffee/comments/1swpq7u/mod_the_official_deal_thread/",
+          "num_comments": 1
+        },
+        {
+          "subreddit": "coffee",
+          "title": "[MOD] The Daily Question Thread",
+          "score": 9,
+          "url": "https://www.reddit.com/r/Coffee/comments/1sw3gse/mod_the_daily_question_thread/",
+          "num_comments": 8
+        }
+      ],
       "quest": false
     }
   },
   {
-    "id": "1774982381.792824-1",
+    "id": "1777345714.091728-1",
     "speaker": "npc_pet_1",
-    "content": "We've totally got this — one cheerful, practical money choice can shift the whole week.",
-    "timestamp": "2026-03-31T18:39:41.792824+00:00",
+    "content": "We can tackle Budget status: saved — Successfully increased savings this week together — one practical step makes all the difference.",
+    "timestamp": "2026-04-28T03:08:34.091728+00:00",
     "meta": {
       "quest": false,
-      "continued": true
+      "continued": true,
+      "llm_provider": "mock"
     }
   },
   {
-    "id": "1774982381.793829-2",
+    "id": "1777345714.104764-2",
     "speaker": "user_pet",
-    "content": "I'm a little anxious, but one small savings win today would really help me feel better.",
-    "timestamp": "2026-03-31T18:39:41.793829+00:00",
+    "content": "I'm a little anxious about Budget status: saved — Successfully increased savings this week, but one small win today would help.",
+    "timestamp": "2026-04-28T03:08:34.104764+00:00",
     "meta": {
       "quest": false,
-      "continued": true
+      "continued": true,
+      "llm_provider": "mock"
     }
   },
   {
-    "id": "1774982381.793829-3",
+    "id": "1777345714.118544-3",
     "speaker": "barista_planner",
-    "content": "Stay disciplined and follow through on one concrete step now.",
-    "timestamp": "2026-03-31T18:39:41.793829+00:00",
+    "content": "Eyes on the treasure: Budget status: saved — Successfully increased savings this week is exactly where discipline pays off.",
+    "timestamp": "2026-04-28T03:08:34.118544+00:00",
     "meta": {
       "quest": false,
-      "continued": true
+      "continued": true,
+      "llm_provider": "mock"
     }
   }
 ]

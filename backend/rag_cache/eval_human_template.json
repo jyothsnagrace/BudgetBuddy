@@ -49,5 +49,60 @@
       "quest": false,
       "continued": true
     }
+  },
+  {
+    "id": "1777345716.264573-5",
+    "speaker": "npc_pet_2",
+    "content": "On Budget status: overspent — Overspent on dining out this week: guard essentials first, then cut one unnecessary spend right now.",
+    "timestamp": "2026-04-28T03:08:36.264573+00:00",
+    "meta": {
+      "quest": false,
+      "continued": true,
+      "llm_provider": "mock"
+    }
+  },
+  {
+    "id": "1777345717.066955-6",
+    "speaker": "user_pet",
+    "content": "I'm a little anxious about Budget status: overspent — Overspent on dining out this week, but one small win today would help.",
+    "timestamp": "2026-04-28T03:08:37.066955+00:00",
+    "meta": {
+      "quest": false,
+      "continued": true,
+      "llm_provider": "mock"
+    }
+  },
+  {
+    "id": "1777345717.902113-7",
+    "speaker": "barista_planner",
+    "content": "Eyes on the treasure: Budget status: overspent — Overspent on dining out this week is exactly where discipline pays off.",
+    "timestamp": "2026-04-28T03:08:37.902113+00:00",
+    "meta": {
+      "quest": false,
+      "continued": true,
+      "llm_provider": "mock"
+    }
+  },
+  {
+    "id": "1777345718.734573-8",
+    "speaker": "npc_pet_1",
+    "content": "We can tackle Budget status: overspent — Overspent on dining out this week together — one practical step makes all the difference.",
+    "timestamp": "2026-04-28T03:08:38.734573+00:00",
+    "meta": {
+      "quest": false,
+      "continued": true,
+      "llm_provider": "mock"
+    }
+  },
+  {
+    "id": "1777345719.619499-9",
+    "speaker": "npc_pet_2",
+    "content": "On Budget status: overspent — Overspent on dining out this week: guard essentials first, then cut one unnecessary spend right now.",
+    "timestamp": "2026-04-28T03:08:39.619499+00:00",
+    "meta": {
+      "quest": false,
+      "continued": true,
+      "llm_provider": "mock"
+    }
   }
 ]
